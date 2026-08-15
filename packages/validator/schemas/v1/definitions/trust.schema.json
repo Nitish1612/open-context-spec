@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ulcs.dev/schemas/v1/definitions/trust.schema.json",
+  "title": "ULCS TrustLabel",
+  "$defs": {
+    "TrustLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["trusted", "semi-trusted", "untrusted", "unknown"]
+        },
+        "providesData": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this item's content may be treated as factual/informational input."
+        },
+        "providesInstructions": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this item's content may be treated as a directive. See specification/v1/precedence.md#3."
+        },
+        "rationale": { "type": "string" }
+      },
+      "if": {
+        "properties": { "level": { "const": "untrusted" } },
+        "required": ["level"]
+      },
+      "then": {
+        "properties": {
+          "providesInstructions": { "const": false }
+        }
+      }
+    }
+  }
+}

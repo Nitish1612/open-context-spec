@@ -6,6 +6,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/)
 (pre-1.0: breaking changes may land in any `0.x` minor release, always
 called out below).
 
+## [Unreleased]
+
+### Changed
+
+- Project renamed (human-facing) from "Universal LLM Context Schema
+  (ULCS)" to "**Open Context Specification (OCS)**." Code identifiers
+  (`@ulcs/*` packages, the `ulcs` CLI, `urn:ulcs:*`, `https://ulcs.dev/...`)
+  are unchanged in this release and are documented as provisional
+  compatibility identifiers — see
+  [ADR-0004](./specification/decisions/0004-ocs-branding-and-ulcs-migration.md).
+  The `0.1.0` entry below is left as originally written to accurately
+  describe what shipped under that name at the time.
+- `ulcs.dev`-based schema `$id`/JSON-LD `@context` identifiers are now
+  explicitly documented as provisional, with a temporary GitHub-hosted
+  distribution alternative — see
+  [ADR-0005](./specification/decisions/0005-uri-permanence.md) and the
+  new `pnpm run check:uris` script (no network access required).
+- `@ulcs/validator` now bundles its own copies of the JSON Schemas
+  (`packages/validator/schemas/`) instead of reading them from the
+  monorepo root at runtime, so it validates correctly when installed
+  standalone outside this repository — see
+  [ADR-0006](./specification/decisions/0006-validator-schema-bundling.md).
+  Kept in sync via `pnpm run sync:validator-schemas` /
+  `check:validator-schemas`.
+- All five publishable packages (`@ulcs/core`, `@ulcs/validator`,
+  `@ulcs/compiler`, `@ulcs/adapters`, `@ulcs/cli`) now declare
+  `repository`, `bugs`, `homepage`, `keywords`, `engines`, an accurate
+  `files` allowlist, and a per-package `README.md`/`LICENSE`.
+- CI step ordering fixed so `build` runs before `typecheck` (packages
+  that resolve workspace dependencies through `exports`/`types` need the
+  `.d.ts` files to exist first), and both install steps now use
+  `pnpm install --frozen-lockfile`.
+
+### Added
+
+- `pnpm run test:packages` (`scripts/test-packed-packages.ts`): packs
+  every package with `pnpm pack`, installs the tarballs into a temporary
+  consumer project outside the monorepo, and verifies imports, type
+  declarations, validation, compilation for every provider adapter, and
+  the installed CLI — confirming no runtime path depends on the source
+  monorepo. Runs in CI after the main test suite.
+- `docs/github-setup.md`: manual checklist for repository description,
+  topics, labels, Discussions, branch protection, required CI checks,
+  private vulnerability reporting, and npm-scope/domain confirmation —
+  none of it performed automatically.
+- `RELEASING.md`: full release checklist (version selection through
+  npm publishing and rollback/deprecation), plus a proposed (not
+  executed) `v0.1.0` prerelease plan.
+- `SUPPORT.md` and a corrected `.github/ISSUE_TEMPLATE/config.yml`
+  (real repository links instead of a generic placeholder).
+- The **Specification change proposal** issue template now requires a
+  problem statement, use cases, alternatives considered, compatibility/
+  security/provider-adapter impact, migration path, test/conformance
+  impact, and a proposed review period, and `CONTRIBUTING.md` documents
+  the Editorial/Backward-compatible/Breaking/Security-sensitive/
+  Experimental-extension classification that determines review depth.
+
 ## [0.1.0] - 2026-08-15
 
 Initial draft release of the Universal LLM Context Schema (ULCS).

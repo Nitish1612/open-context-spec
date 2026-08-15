@@ -3,8 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Universal LLM Context Schema (ULCS) — a vendor-neutral standard for representing context supplied to Large Language Models.",
+  "description": "Open Context Specification (OCS) — a vendor-neutral specification for representing context supplied to LLMs, agents, RAG systems, and MCP applications. Drafted under the working name Universal LLM Context Schema (ULCS); see ADR-0004 for naming.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nitish1612/open-context-spec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Nitish1612/open-context-spec/issues"
+  },
+  "homepage": "https://github.com/Nitish1612/open-context-spec#readme",
   "engines": {
     "node": ">=18.18.0"
   },
@@ -25,9 +33,13 @@
     "interop": "vitest run tests/interoperability",
     "validate:examples": "tsx scripts/validate-examples.ts",
     "lint:schemas": "tsx scripts/lint-schemas.ts",
+    "check:uris": "tsx scripts/check-uris.ts",
+    "sync:validator-schemas": "tsx scripts/sync-validator-schemas.ts",
+    "check:validator-schemas": "tsx scripts/sync-validator-schemas.ts --check",
+    "test:packages": "tsx scripts/test-packed-packages.ts",
     "benchmark": "tsx benchmark/src/run.ts",
     "benchmark:live": "tsx benchmark/src/live-eval.ts",
-    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run test && pnpm run lint:schemas && pnpm run validate:examples",
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run build && pnpm run typecheck && pnpm run test && pnpm run lint:schemas && pnpm run check:uris && pnpm run check:validator-schemas && pnpm run validate:examples",
     "changeset": "echo 'Use conventional commits; see CONTRIBUTING.md for release process.'"
   },
   "devDependencies": {

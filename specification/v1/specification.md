@@ -1,10 +1,17 @@
-# ULCS v1 Specification (Draft)
+# Open Context Specification v1 (Draft)
 
-> **Status: Draft.** This is version `1.0.0-draft` of the Universal LLM Context
-> Schema. It is an early-stage proposal, not an established industry standard.
-> Interfaces described here may change before a `1.0.0` stable release. See
-> [STABILITY](#stability-and-versioning) below and the repository root
-> [README](../../README.md) for the current stability status.
+> **Status: Experimental community draft.** This is version `1.0.0-draft` of
+> the Open Context Specification (OCS), drafted under the working name
+> "Universal LLM Context Schema (ULCS)" — the identifiers throughout this
+> document and the schemas (`urn:ulcs:*`, `https://ulcs.dev/...`, the
+> `@ulcs/*` packages) are provisional compatibility names, not a naming
+> inconsistency; see
+> [ADR-0004](../decisions/0004-ocs-branding-and-ulcs-migration.md) for the
+> migration plan. OCS is an early-stage proposal, not an established
+> industry standard. Interfaces described here may change before a `1.0.0`
+> stable release. See [STABILITY](#stability-and-versioning) below and the
+> repository root [README](../../README.md) for the current maturity
+> status.
 
 ## 1. Purpose
 
@@ -23,27 +30,27 @@ that matters for correctness and safety:
 - **What can be dropped under a token budget, and in what order?** Ad hoc
   truncation is non-deterministic and easy to get wrong.
 
-ULCS defines a vendor-neutral, machine-readable schema for representing this
+OCS defines a vendor-neutral, machine-readable schema for representing this
 context **before** it is compiled into any specific model's prompt format,
 plus a deterministic compiler and a set of provider adapters that perform
 that compilation.
 
 ## 2. Non-goals
 
-ULCS explicitly does **not** claim to:
+OCS explicitly does **not** claim to:
 
 - Make any model faster, cheaper, or more accurate. Its goals are
   interoperability, reduced prompt ambiguity, reliable context conversion,
   provenance tracking, security labeling, token efficiency, and reproducible
   evaluation — not model intelligence.
-- Enforce security policy. ULCS labels data (trust levels, sensitivity,
+- Enforce security policy. OCS labels data (trust levels, sensitivity,
   handling rules); an SDK or host application must act on those labels.
   See [security.md](./security.md).
 - Replace Model Context Protocol (MCP), which transports context and tool
-  calls between applications and hosts. ULCS is a content model that can be
+  calls between applications and hosts. OCS is a content model that can be
   carried _inside_ an MCP resource, tool result, or prompt. See
   [interoperability.md](./interoperability.md).
-- Replace JSON Schema or JSON-LD. ULCS _uses_ both: JSON Schema 2020-12 for
+- Replace JSON Schema or JSON-LD. OCS _uses_ both: JSON Schema 2020-12 for
   structural validation, JSON-LD for canonical semantic representation.
 
 ## 3. Design principles
@@ -67,7 +74,7 @@ ULCS explicitly does **not** claim to:
     formats.
 12. The specification is useful without any SDK, server, or network
     connection: a hand-written JSON document that validates against the
-    schemas is a conformant ULCS document.
+    schemas is a conformant OCS document.
 
 ## 4. The Context Envelope
 
@@ -105,7 +112,7 @@ A **Context Envelope** is the top-level container for a unit of LLM context.
 }
 ```
 
-This refines the strawman envelope from the ULCS proposal in three ways,
+This refines the strawman envelope from the OCS proposal in three ways,
 recorded as [ADR-0001](../decisions/0001-envelope-shape.md):
 
 - Added `assumptions`, `questions`, `toolResults`, and `errors` arrays, since
@@ -222,7 +229,7 @@ MCP-resource targets. See [token-policy.md](./token-policy.md) and
 ```text
 Application data
       ↓
-ULCS semantic context
+OCS semantic context
       ↓
 Validation, security policy and token compilation
       ↓

@@ -2,7 +2,8 @@
 
 ## Current stage: maintainer-led draft
 
-ULCS is presently in its initial drafting stage. Decisions about the
+Open Context Specification (OCS) is presently in its initial drafting
+stage. Decisions about the
 specification and reference implementation are made by the project's
 maintainers, informed by public issue/PR discussion. This is a starting
 point, not a permanent structure — see "Path to community governance"
@@ -44,12 +45,13 @@ specification changes, and a documented promotion path from
 2. Establish a steering group once there are multiple independent
    adopters/implementers, not just the reference implementation's
    authors.
-3. Document a trademark/branding policy for "ULCS" if the project reaches
-   a scale where that matters.
+3. Document a trademark/branding policy for "Open Context Specification"
+   (and its provisional `ULCS`/`ulcs` code identifiers — see ADR-0004) if
+   the project reaches a scale where that matters.
 4. Revisit this document and replace "maintainer-led draft" with the
    agreed structure.
 
-Until then, if you want a say in where ULCS goes, the highest-leverage
+Until then, if you want a say in where OCS goes, the highest-leverage
 thing you can do is open issues/PRs and participate in ADR discussions —
 that record is what any future governance body will inherit.
 

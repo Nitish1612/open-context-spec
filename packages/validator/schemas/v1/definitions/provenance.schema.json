@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ulcs.dev/schemas/v1/definitions/provenance.schema.json",
+  "title": "ULCS Provenance",
+  "$defs": {
+    "TransformationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation"],
+      "properties": {
+        "operation": { "type": "string", "minLength": 1 },
+        "timestamp": {
+          "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/timestamp"
+        },
+        "actor": { "type": "string" }
+      }
+    },
+    "Citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["@type"],
+      "properties": {
+        "@type": { "const": "Citation" },
+        "id": {
+          "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/identifier"
+        },
+        "sourceId": { "type": "string" },
+        "uri": { "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/uri" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "publishedAt": {
+          "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/timestamp"
+        },
+        "excerpt": { "type": "string" },
+        "locator": { "type": "string" }
+      }
+    },
+    "ProvenanceSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "signature"],
+      "properties": {
+        "alg": { "type": "string", "minLength": 1 },
+        "publicKeyId": { "type": "string" },
+        "signature": { "type": "string", "minLength": 1 }
+      },
+      "description": "Experimental. See specification/v1/provenance.md#5-experimental-signing-and-verification."
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceUri": {
+          "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/uri"
+        },
+        "sourceId": { "type": "string" },
+        "sourceType": {
+          "type": "string",
+          "enum": [
+            "user",
+            "system",
+            "developer",
+            "application",
+            "tool",
+            "retrieved-document",
+            "web-page",
+            "email",
+            "database",
+            "memory-store",
+            "model-output",
+            "unknown"
+          ]
+        },
+        "author": { "type": "string" },
+        "retrievedAt": {
+          "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/timestamp"
+        },
+        "contentTimestamp": {
+          "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/timestamp"
+        },
+        "contentHash": { "type": "string" },
+        "citation": { "$ref": "#/$defs/Citation" },
+        "transformations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TransformationStep" }
+        },
+        "confidence": {
+          "$ref": "https://ulcs.dev/schemas/v1/definitions/common.schema.json#/$defs/unitInterval"
+        },
+        "verificationStatus": {
+          "type": "string",
+          "enum": ["unverified", "verified", "disputed", "failed"]
+        },
+        "signature": { "$ref": "#/$defs/ProvenanceSignature" }
+      }
+    }
+  }
+}

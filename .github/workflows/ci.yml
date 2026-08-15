@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Format check
         run: pnpm run format:check
@@ -40,11 +40,11 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
-      - name: Typecheck
-        run: pnpm run typecheck
-
       - name: Build
         run: pnpm run build
+
+      - name: Typecheck
+        run: pnpm run typecheck
 
       - name: Test
         run: pnpm run test
@@ -52,8 +52,17 @@ jobs:
       - name: Lint schemas
         run: pnpm run lint:schemas
 
+      - name: Check URI consistency
+        run: pnpm run check:uris
+
+      - name: Check validator schema bundle is in sync
+        run: pnpm run check:validator-schemas
+
       - name: Validate examples
         run: pnpm run validate:examples
+
+      - name: Packed-package smoke tests
+        run: pnpm run test:packages
 
   coverage:
     name: Coverage
@@ -71,7 +80,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm run build

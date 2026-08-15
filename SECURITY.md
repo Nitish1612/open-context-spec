@@ -2,17 +2,20 @@
 
 ## Scope
 
-This policy covers the ULCS specification, JSON Schemas, and the
-TypeScript reference implementation (`packages/*`) in this repository.
+This policy covers the Open Context Specification (OCS), its JSON Schemas,
+and the TypeScript reference implementation (`packages/*`, currently
+published under the provisional `@ulcs/*` identifiers — see
+[ADR-0004](./specification/decisions/0004-ocs-branding-and-ulcs-migration.md))
+in this repository.
 
-Please read `specification/v1/security.md` first: ULCS is a **labeling and
+Please read `specification/v1/security.md` first: OCS is a **labeling and
 data-modeling** standard. It documents a threat model (prompt injection,
 instruction-authority confusion, data exfiltration, malicious tool output,
 context poisoning, stale memory, forged provenance, oversized-context
 denial of service) and gives applications the vocabulary to defend against
 it, but it does not itself enforce security beyond what
 `redactContext`/schema validation perform on data explicitly passed to
-them. A report that ULCS "doesn't prevent prompt injection" by itself is
+them. A report that OCS "doesn't prevent prompt injection" by itself is
 expected behavior, not a vulnerability — see that document for what is and
 isn't a security boundary here.
 

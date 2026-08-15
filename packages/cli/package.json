@@ -1,17 +1,46 @@
 {
   "name": "@ulcs/cli",
   "version": "0.1.0",
-  "description": "Universal LLM Context Schema — the ulcs command-line tool (validate, normalize, compile, redact, diff).",
+  "description": "Open Context Specification (OCS) — the ulcs command-line tool (validate, normalize, compile, redact, diff, patch). Provisional package/binary name; drafted under the working name Universal LLM Context Schema (ULCS), see ADR-0004.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nitish1612/open-context-spec.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/Nitish1612/open-context-spec/issues"
+  },
+  "homepage": "https://github.com/Nitish1612/open-context-spec/tree/main/packages/cli#readme",
+  "keywords": [
+    "llm",
+    "context-engineering",
+    "cli",
+    "command-line",
+    "json-schema",
+    "typescript",
+    "open-context-specification"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
     "ulcs": "./dist/bin.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
     "build": "tsup src/index.ts src/bin.ts --format esm --dts --clean --target node18",
     "dev": "tsup src/index.ts src/bin.ts --format esm --dts --watch --target node18",
