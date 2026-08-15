@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ulcs.dev/schemas/v1/context-envelope.schema.json",
+  "title": "ULCS ContextEnvelope",
+  "description": "The top-level container for a unit of LLM context. See specification/v1/specification.md#4.",
+  "type": "object",
+  "required": ["@context", "@type", "schemaVersion", "id", "createdAt"],
+  "properties": {
+    "@context": {
+      "oneOf": [{ "type": "string" }, { "type": "object" }, { "type": "array" }],
+      "description": "JSON-LD context IRI, typically https://ulcs.dev/context/v1"
+    },
+    "@type": { "const": "ContextEnvelope" },
+    "schemaVersion": { "$ref": "definitions/common.schema.json#/$defs/semver" },
+    "id": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+    "createdAt": { "$ref": "definitions/common.schema.json#/$defs/timestamp" },
+    "updatedAt": { "$ref": "definitions/common.schema.json#/$defs/timestamp" },
+
+    "objective": { "$ref": "context-item.schema.json#/$defs/Objective" },
+
+    "actors": { "type": "array", "items": { "$ref": "context-item.schema.json#/$defs/Actor" } },
+    "instructions": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Instruction" }
+    },
+    "facts": { "type": "array", "items": { "$ref": "context-item.schema.json#/$defs/Fact" } },
+    "assumptions": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Assumption" }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Constraint" }
+    },
+    "preferences": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Preference" }
+    },
+    "decisions": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Decision" }
+    },
+    "questions": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Question" }
+    },
+    "conversation": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/ConversationMessage" }
+    },
+    "resources": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Resource" }
+    },
+    "entities": { "type": "array", "items": { "$ref": "context-item.schema.json#/$defs/Entity" } },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/Relationship" }
+    },
+    "memory": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/MemoryItem" }
+    },
+    "tools": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/ToolDefinition" }
+    },
+    "toolResults": {
+      "type": "array",
+      "items": { "$ref": "context-item.schema.json#/$defs/ToolResult" }
+    },
+
+    "outputContract": { "$ref": "#/$defs/OutputContract" },
+    "security": { "$ref": "#/$defs/SecurityPolicy" },
+    "tokenPolicy": { "$ref": "#/$defs/TokenPolicy" },
+    "summary": {
+      "oneOf": [{ "$ref": "context-item.schema.json#/$defs/ContextSummary" }, { "type": "null" }]
+    },
+    "errors": { "type": "array", "items": { "$ref": "context-item.schema.json#/$defs/Error" } },
+    "extensions": { "$ref": "definitions/common.schema.json#/$defs/extensions" }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "OutputContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "@type": { "const": "OutputContract" },
+        "format": { "type": "string", "enum": ["text", "json", "markdown", "custom"] },
+        "schema": { "type": "object" },
+        "constraints": { "type": "array", "items": { "type": "string" } },
+        "mustInclude": { "type": "array", "items": { "type": "string" } },
+        "mustAvoid": { "type": "array", "items": { "type": "string" } },
+        "language": { "type": "string" },
+        "maxLength": { "type": "number", "minimum": 0 }
+      }
+    },
+    "SecurityPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Declarative security labeling metadata. Does not itself enforce anything — see specification/v1/security.md.",
+      "properties": {
+        "@type": { "const": "SecurityPolicy" },
+        "defaultTrust": {
+          "type": "string",
+          "enum": ["trusted", "semi-trusted", "untrusted", "unknown"]
+        },
+        "untrustedWrapping": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "style": { "type": "string", "enum": ["delimiter", "xml-tag"] },
+            "delimiter": { "type": "string" }
+          }
+        },
+        "injectionMitigations": { "type": "array", "items": { "type": "string" } },
+        "allowToolInstructions": { "type": "boolean", "default": false },
+        "allowRetrievedContentInstructions": { "type": "boolean", "default": false },
+        "dataExfiltrationControls": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      }
+    },
+    "TokenPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "@type": { "const": "TokenPolicy" },
+        "maxContextTokens": { "type": "number", "minimum": 1 },
+        "reservedOutputTokens": { "type": "number", "minimum": 0 },
+        "sectionBudgets": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0 }
+        },
+        "relevanceThreshold": { "$ref": "definitions/common.schema.json#/$defs/unitInterval" },
+        "deduplicate": { "type": "boolean", "default": true },
+        "allowSummarization": { "type": "boolean", "default": false },
+        "allowTruncation": { "type": "boolean", "default": true },
+        "requiredItemIds": {
+          "type": "array",
+          "items": { "$ref": "definitions/common.schema.json#/$defs/identifier" }
+        },
+        "tokenEstimationMethod": { "type": "string", "enum": ["approx-char4", "custom"] }
+      }
+    }
+  }
+}

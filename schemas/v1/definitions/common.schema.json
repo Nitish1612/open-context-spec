@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ulcs.dev/schemas/v1/definitions/common.schema.json",
+  "title": "ULCS Common Definitions",
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A URI or URN identifying a document or item. A urn:ulcs:* scheme is recommended but not required."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp."
+    },
+    "nullableTimestamp": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "uri": {
+      "type": "string",
+      "format": "uri",
+      "minLength": 1
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z-.]+)?(\\+[0-9A-Za-z-.]+)?$"
+    },
+    "priority": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "unitInterval": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "scope": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "status": {
+      "type": "string",
+      "enum": ["confirmed", "unconfirmed", "disputed", "retracted", "superseded"]
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data. Keys SHOULD use the x-<namespace>: convention documented in specification/v1/specification.md#8-extensibility."
+    },
+    "relationshipRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "targetId"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "targetId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "typeName": {
+      "type": "string",
+      "pattern": "^([A-Z][A-Za-z0-9]*|x-[a-z0-9-]+:[A-Za-z][A-Za-z0-9]*)$",
+      "description": "A core PascalCase semantic type name, or a namespaced extension type of the form x-<namespace>:<TypeName>."
+    }
+  }
+}

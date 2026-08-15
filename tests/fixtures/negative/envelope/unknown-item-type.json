@@ -1,0 +1,8 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:fixture-unknown-type",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "facts": [{ "id": "urn:ulcs:fact:1", "@type": "NotAFact", "content": "x" }]
+}

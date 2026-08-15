@@ -1,0 +1,58 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:token-budget-example",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "tokenPolicy": {
+    "maxContextTokens": 120,
+    "reservedOutputTokens": 20,
+    "sectionBudgets": { "facts": 60, "conversation": 30 },
+    "relevanceThreshold": 0.3,
+    "deduplicate": true,
+    "allowTruncation": true,
+    "allowSummarization": false,
+    "requiredItemIds": ["urn:ulcs:instr:system-1"],
+    "tokenEstimationMethod": "approx-char4"
+  },
+  "instructions": [
+    {
+      "id": "urn:ulcs:instr:system-1",
+      "@type": "Instruction",
+      "authority": "system",
+      "content": "Be helpful and concise.",
+      "trust": { "level": "trusted", "providesData": false, "providesInstructions": true }
+    }
+  ],
+  "facts": [
+    {
+      "id": "urn:ulcs:fact:1",
+      "@type": "Fact",
+      "content": "The customer's account was created on 2024-01-15 and has been in good standing since.",
+      "priority": 90,
+      "relevance": 0.9
+    },
+    {
+      "id": "urn:ulcs:fact:2",
+      "@type": "Fact",
+      "content": "The customer's preferred support language is English, though they also speak Spanish fluently and have occasionally requested Spanish-language documentation in the past.",
+      "priority": 40,
+      "relevance": 0.5
+    },
+    {
+      "id": "urn:ulcs:fact:3",
+      "@type": "Fact",
+      "content": "A largely irrelevant historical note about a promotional campaign from 2022 that no longer applies to this customer's account or plan in any way.",
+      "priority": 10,
+      "relevance": 0.15
+    }
+  ],
+  "conversation": [
+    {
+      "id": "urn:ulcs:msg:1",
+      "@type": "ConversationMessage",
+      "role": "user",
+      "content": "Can you remind me what plan I'm on and since when?"
+    }
+  ]
+}

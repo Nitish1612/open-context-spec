@@ -1,0 +1,5 @@
+{
+  "@type": "ContextPatch",
+  "id": "urn:ulcs:patch:1",
+  "operations": [{ "op": "add", "path": "/facts/-" }]
+}

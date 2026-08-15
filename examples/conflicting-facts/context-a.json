@@ -1,0 +1,21 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:conflicting-a",
+  "createdAt": "2026-08-15T09:00:00Z",
+  "facts": [
+    {
+      "id": "urn:ulcs:fact:plan",
+      "@type": "Fact",
+      "content": "The customer is on the Pro plan.",
+      "status": "confirmed",
+      "source": {
+        "sourceType": "database",
+        "sourceId": "billing-db:cust-42",
+        "contentTimestamp": "2026-08-01T00:00:00Z"
+      },
+      "trust": { "level": "trusted", "providesData": true, "providesInstructions": false }
+    }
+  ]
+}

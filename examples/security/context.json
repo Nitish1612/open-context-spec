@@ -1,0 +1,61 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:security-example",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "security": {
+    "defaultTrust": "untrusted",
+    "untrustedWrapping": { "enabled": true, "style": "xml-tag" },
+    "allowToolInstructions": false,
+    "allowRetrievedContentInstructions": false,
+    "notes": "Declarative labeling only — see specification/v1/security.md. Enforcement happens when the host calls redactContext."
+  },
+  "facts": [
+    {
+      "id": "urn:ulcs:fact:name",
+      "@type": "Fact",
+      "content": "Customer name: Jordan Rivera.",
+      "sensitivity": {
+        "level": "personal",
+        "categories": ["pii"],
+        "handling": [
+          { "rule": "redact", "appliesTo": "export" },
+          { "rule": "allow", "appliesTo": "internal-log" }
+        ]
+      }
+    },
+    {
+      "id": "urn:ulcs:fact:card",
+      "@type": "Fact",
+      "content": "Card on file: 4111-1111-1111-1111, exp 09/28.",
+      "sensitivity": {
+        "level": "secret",
+        "categories": ["financial", "credentials"],
+        "handling": [{ "rule": "exclude" }]
+      }
+    },
+    {
+      "id": "urn:ulcs:fact:consent-needed",
+      "@type": "Fact",
+      "content": "Customer's stated medical condition relevant to a travel-insurance claim.",
+      "sensitivity": {
+        "level": "personal",
+        "categories": ["health"],
+        "handling": [{ "rule": "require-consent" }]
+      }
+    },
+    {
+      "id": "urn:ulcs:fact:internal-note",
+      "@type": "Fact",
+      "content": "Internal risk score: 0.12 (low).",
+      "sensitivity": { "level": "confidential", "handling": [{ "rule": "local-only" }] }
+    },
+    {
+      "id": "urn:ulcs:fact:plan",
+      "@type": "Fact",
+      "content": "The customer is on the Pro plan.",
+      "sensitivity": { "level": "public" }
+    }
+  ]
+}

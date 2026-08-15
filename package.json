@@ -1,0 +1,49 @@
+{
+  "name": "ulcs-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Universal LLM Context Schema (ULCS) — a vendor-neutral standard for representing context supplied to Large Language Models.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "pnpm -r --filter=./packages/* run build",
+    "clean": "pnpm -r --filter=./packages/* run clean",
+    "dev": "pnpm -r --parallel --filter=./packages/* run dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r --filter=./packages/* run typecheck",
+    "conformance": "vitest run tests/conformance",
+    "interop": "vitest run tests/interoperability",
+    "validate:examples": "tsx scripts/validate-examples.ts",
+    "lint:schemas": "tsx scripts/lint-schemas.ts",
+    "benchmark": "tsx benchmark/src/run.ts",
+    "benchmark:live": "tsx benchmark/src/live-eval.ts",
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run test && pnpm run lint:schemas && pnpm run validate:examples",
+    "changeset": "echo 'Use conventional commits; see CONTRIBUTING.md for release process.'"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.5",
+    "@ulcs/adapters": "workspace:*",
+    "@ulcs/compiler": "workspace:*",
+    "@ulcs/core": "workspace:*",
+    "@ulcs/validator": "workspace:*",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.1",
+    "vitest": "^2.1.8"
+  }
+}

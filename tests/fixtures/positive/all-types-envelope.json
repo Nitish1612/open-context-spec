@@ -1,0 +1,100 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:fixture-all-types",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "updatedAt": "2026-08-15T12:05:00Z",
+  "objective": {
+    "id": "urn:ulcs:objective:1",
+    "@type": "Objective",
+    "summary": "Exercise every type once."
+  },
+  "actors": [{ "id": "urn:ulcs:actor:1", "@type": "Actor", "role": "user", "actorType": "human" }],
+  "instructions": [
+    {
+      "id": "urn:ulcs:instr:1",
+      "@type": "Instruction",
+      "authority": "system",
+      "content": "Be helpful."
+    }
+  ],
+  "facts": [{ "id": "urn:ulcs:fact:1", "@type": "Fact", "content": "Fact content." }],
+  "assumptions": [
+    { "id": "urn:ulcs:assum:1", "@type": "Assumption", "content": "Assumption content." }
+  ],
+  "constraints": [
+    {
+      "id": "urn:ulcs:constraint:1",
+      "@type": "Constraint",
+      "content": "Must do X.",
+      "constraintType": "must"
+    }
+  ],
+  "preferences": [
+    {
+      "id": "urn:ulcs:pref:1",
+      "@type": "Preference",
+      "content": "Prefers brevity.",
+      "strength": 0.5
+    }
+  ],
+  "decisions": [{ "id": "urn:ulcs:decision:1", "@type": "Decision", "content": "Decided X." }],
+  "questions": [
+    { "id": "urn:ulcs:q:1", "@type": "Question", "content": "Is Y true?", "resolved": false }
+  ],
+  "conversation": [
+    { "id": "urn:ulcs:msg:1", "@type": "ConversationMessage", "role": "user", "content": "Hello." }
+  ],
+  "resources": [
+    {
+      "id": "urn:ulcs:res:1",
+      "@type": "Resource",
+      "uri": "https://example.com",
+      "content": "Resource content."
+    }
+  ],
+  "entities": [
+    { "id": "urn:ulcs:entity:1", "@type": "Entity", "name": "Thing", "entityType": "Product" }
+  ],
+  "relationships": [
+    {
+      "id": "urn:ulcs:rel:1",
+      "@type": "Relationship",
+      "subjectId": "urn:ulcs:entity:1",
+      "predicate": "relatesTo",
+      "objectId": "urn:ulcs:entity:1"
+    }
+  ],
+  "memory": [
+    {
+      "id": "urn:ulcs:mem:1",
+      "@type": "MemoryItem",
+      "content": "Remembered thing.",
+      "memoryType": "episodic"
+    }
+  ],
+  "tools": [{ "id": "urn:ulcs:tool:1", "@type": "ToolDefinition", "name": "do_thing" }],
+  "toolResults": [
+    {
+      "id": "urn:ulcs:toolresult:1",
+      "@type": "ToolResult",
+      "toolName": "do_thing",
+      "outcome": "success",
+      "output": { "ok": true }
+    }
+  ],
+  "outputContract": { "format": "text" },
+  "security": { "defaultTrust": "untrusted" },
+  "tokenPolicy": { "maxContextTokens": 1000 },
+  "summary": {
+    "id": "urn:ulcs:summary:1",
+    "@type": "ContextSummary",
+    "content": "Summary text.",
+    "summarizedItemIds": ["urn:ulcs:fact:1"]
+  },
+  "errors": [
+    { "@type": "Error", "code": "TEST", "message": "A test error.", "severity": "warning" }
+  ],
+  "extensions": { "x-acme:internalId": "abc123" }
+}

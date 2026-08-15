@@ -1,0 +1,30 @@
+{
+  "name": "@ulcs/core",
+  "version": "0.1.0",
+  "description": "Universal LLM Context Schema — core types and deterministic context algorithms (create, normalize, merge, patch, dedupe, filter, rank, redact, export).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --target node18",
+    "dev": "tsup src/index.ts --format esm --dts --watch --target node18",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "tsup": "^8.3.5"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ulcs.dev/schemas/v1/definitions/sensitivity.schema.json",
+  "title": "ULCS SensitivityLabel",
+  "$defs": {
+    "HandlingRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule"],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "enum": ["allow", "redact", "summarize", "exclude", "require-consent", "local-only"]
+        },
+        "appliesTo": {
+          "type": "string",
+          "description": "Boundary this rule applies to, e.g. 'export', 'compile', 'log'. Free text, host-defined."
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "SensitivityLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted", "personal", "secret"]
+        },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "handling": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/HandlingRule" }
+        }
+      }
+    }
+  }
+}

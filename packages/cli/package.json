@@ -1,0 +1,32 @@
+{
+  "name": "@ulcs/cli",
+  "version": "0.1.0",
+  "description": "Universal LLM Context Schema — the ulcs command-line tool (validate, normalize, compile, redact, diff).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ulcs": "./dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/bin.ts --format esm --dts --clean --target node18",
+    "dev": "tsup src/index.ts src/bin.ts --format esm --dts --watch --target node18",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ulcs/core": "workspace:*",
+    "@ulcs/validator": "workspace:*",
+    "@ulcs/compiler": "workspace:*",
+    "@ulcs/adapters": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "tsup": "^8.3.5"
+  }
+}

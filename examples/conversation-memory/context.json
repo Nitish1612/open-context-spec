@@ -1,0 +1,64 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:conversation-memory-example",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "objective": {
+    "id": "urn:ulcs:objective:1",
+    "@type": "Objective",
+    "summary": "Continue a long-running support conversation, recalling relevant history."
+  },
+  "memory": [
+    {
+      "id": "urn:ulcs:mem:1",
+      "@type": "MemoryItem",
+      "memoryType": "episodic",
+      "content": "In March 2026, the customer reported a billing discrepancy that was resolved with a $15 credit.",
+      "importance": 0.6,
+      "lastAccessedAt": "2026-08-15T11:00:00Z",
+      "decay": 0.3,
+      "source": { "sourceType": "memory-store", "sourceId": "mem-store:cust-42:episodic:0091" }
+    },
+    {
+      "id": "urn:ulcs:mem:2",
+      "@type": "MemoryItem",
+      "memoryType": "profile",
+      "content": "The customer prefers email over phone contact and is in the America/New_York timezone.",
+      "importance": 0.8,
+      "lastAccessedAt": "2026-08-15T11:00:00Z",
+      "source": { "sourceType": "memory-store", "sourceId": "mem-store:cust-42:profile" }
+    },
+    {
+      "id": "urn:ulcs:mem:3",
+      "@type": "MemoryItem",
+      "memoryType": "semantic",
+      "content": "The customer has been a Pro-tier subscriber since January 2024.",
+      "importance": 0.5,
+      "lastAccessedAt": "2026-08-15T11:00:00Z"
+    }
+  ],
+  "conversation": [
+    {
+      "id": "urn:ulcs:msg:1",
+      "@type": "ConversationMessage",
+      "role": "user",
+      "content": "Hi, it's me again about that billing thing from a few months back.",
+      "timestamp": "2026-08-15T12:00:00Z"
+    },
+    {
+      "id": "urn:ulcs:msg:2",
+      "@type": "ConversationMessage",
+      "role": "assistant",
+      "content": "Welcome back! I see we resolved a billing discrepancy in March with a $15 credit. Is this a new, related issue?",
+      "timestamp": "2026-08-15T12:00:04Z"
+    },
+    {
+      "id": "urn:ulcs:msg:3",
+      "@type": "ConversationMessage",
+      "role": "user",
+      "content": "Yes, I was charged twice again this month.",
+      "timestamp": "2026-08-15T12:00:20Z"
+    }
+  ]
+}

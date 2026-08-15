@@ -1,0 +1,7 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:fixture-minimal",
+  "createdAt": "2026-08-15T12:00:00Z"
+}

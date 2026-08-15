@@ -1,0 +1,56 @@
+{
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "### System Instructions\nBe empathetic and concise.\n\n### Developer Instructions\nAlways mention the 5-business-day refund window."
+      }
+    ]
+  },
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Context:\n\n## Objective\nHelp the customer understand their refund options.\n\n## Facts\n- The customer's order #987 was delivered on 2026-08-10.\n\n## Resources\n- <untrusted-content source=\"retrieved-document\" id=\"urn:ulcs:res:1\">\nRefunds are issued within 5 business days of an approved return.\n</untrusted-content>\n\n## Tool Results\n- <untrusted-content source=\"unknown\" id=\"urn:ulcs:toolresult:1\">\n{\"orderId\":\"987\",\"eligibleForRefund\":true}\n</untrusted-content>\n\n## User Instructions\nPlease answer in a short paragraph, not a list."
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "I'd like to return order #987."
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "I can help with that — may I ask the reason for the return?"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "It arrived damaged."
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Tool results:\n- lookup_order (success): {\"orderId\":\"987\",\"eligibleForRefund\":true}"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "developer- and application-authority instructions were folded into the single Gemini systemInstruction, each under its own heading.",
+    "Tool results were rendered as a labeled text block, not native functionResponse parts.",
+    "Item-level metadata (priority, trust, sensitivity) is not representable in plain turn text; it only shaped which items were included and in what order."
+  ]
+}

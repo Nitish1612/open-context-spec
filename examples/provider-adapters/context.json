@@ -1,0 +1,84 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:provider-adapters-example",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "objective": {
+    "id": "urn:ulcs:objective:1",
+    "@type": "Objective",
+    "summary": "Help the customer understand their refund options."
+  },
+  "instructions": [
+    {
+      "id": "urn:ulcs:instr:system-1",
+      "@type": "Instruction",
+      "authority": "system",
+      "content": "Be empathetic and concise.",
+      "trust": { "level": "trusted", "providesData": false, "providesInstructions": true }
+    },
+    {
+      "id": "urn:ulcs:instr:developer-1",
+      "@type": "Instruction",
+      "authority": "developer",
+      "content": "Always mention the 5-business-day refund window.",
+      "trust": { "level": "trusted", "providesData": false, "providesInstructions": true }
+    },
+    {
+      "id": "urn:ulcs:instr:user-1",
+      "@type": "Instruction",
+      "authority": "user",
+      "content": "Please answer in a short paragraph, not a list.",
+      "trust": { "level": "trusted", "providesData": false, "providesInstructions": true }
+    }
+  ],
+  "facts": [
+    {
+      "id": "urn:ulcs:fact:1",
+      "@type": "Fact",
+      "content": "The customer's order #987 was delivered on 2026-08-10.",
+      "trust": { "level": "trusted", "providesData": true, "providesInstructions": false }
+    }
+  ],
+  "resources": [
+    {
+      "id": "urn:ulcs:res:1",
+      "@type": "Resource",
+      "uri": "https://example.com/help/refunds",
+      "content": "Refunds are issued within 5 business days of an approved return.",
+      "trust": { "level": "untrusted", "providesData": true, "providesInstructions": false },
+      "source": { "sourceType": "retrieved-document" }
+    }
+  ],
+  "conversation": [
+    {
+      "id": "urn:ulcs:msg:1",
+      "@type": "ConversationMessage",
+      "role": "user",
+      "content": "I'd like to return order #987."
+    },
+    {
+      "id": "urn:ulcs:msg:2",
+      "@type": "ConversationMessage",
+      "role": "assistant",
+      "content": "I can help with that — may I ask the reason for the return?"
+    },
+    {
+      "id": "urn:ulcs:msg:3",
+      "@type": "ConversationMessage",
+      "role": "user",
+      "content": "It arrived damaged."
+    }
+  ],
+  "toolResults": [
+    {
+      "id": "urn:ulcs:toolresult:1",
+      "@type": "ToolResult",
+      "toolCallId": "call_1",
+      "toolName": "lookup_order",
+      "outcome": "success",
+      "output": { "orderId": "987", "eligibleForRefund": true },
+      "trust": { "level": "untrusted", "providesData": true, "providesInstructions": false }
+    }
+  ]
+}

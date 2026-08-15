@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ulcs.dev/schemas/v1/context-patch.schema.json",
+  "title": "ULCS ContextPatch",
+  "description": "An RFC 6902 JSON Patch document scoped to a ContextEnvelope. See specification/v1/interoperability.md#3-context-patch.",
+  "type": "object",
+  "required": ["@type", "id", "operations"],
+  "additionalProperties": false,
+  "properties": {
+    "@type": { "const": "ContextPatch" },
+    "id": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+    "targetId": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+    "createdAt": { "$ref": "definitions/common.schema.json#/$defs/timestamp" },
+    "description": { "type": "string" },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/JsonPatchOperation" }
+    }
+  },
+  "$defs": {
+    "JsonPatchOperation": {
+      "type": "object",
+      "required": ["op", "path"],
+      "properties": {
+        "op": { "type": "string", "enum": ["add", "remove", "replace", "move", "copy", "test"] },
+        "path": { "type": "string", "pattern": "^(/[^/~]*(~[01][^/~]*)*)*$" },
+        "from": { "type": "string", "pattern": "^(/[^/~]*(~[01][^/~]*)*)*$" },
+        "value": {}
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "op": { "const": "add" } }, "required": ["op"] },
+          "then": { "required": ["value"] }
+        },
+        {
+          "if": { "properties": { "op": { "const": "replace" } }, "required": ["op"] },
+          "then": { "required": ["value"] }
+        },
+        {
+          "if": { "properties": { "op": { "const": "test" } }, "required": ["op"] },
+          "then": { "required": ["value"] }
+        },
+        {
+          "if": { "properties": { "op": { "const": "move" } }, "required": ["op"] },
+          "then": { "required": ["from"] }
+        },
+        {
+          "if": { "properties": { "op": { "const": "copy" } }, "required": ["op"] },
+          "then": { "required": ["from"] }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}

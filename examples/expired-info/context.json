@@ -1,0 +1,27 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:expired-info-example",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "facts": [
+    {
+      "id": "urn:ulcs:fact:promo",
+      "@type": "Fact",
+      "content": "There is a 20% summer discount on all annual plans.",
+      "status": "confirmed",
+      "validFrom": "2026-06-01T00:00:00Z",
+      "validUntil": "2026-08-01T00:00:00Z",
+      "source": { "sourceType": "database", "contentTimestamp": "2026-06-01T00:00:00Z" }
+    },
+    {
+      "id": "urn:ulcs:fact:pricing",
+      "@type": "Fact",
+      "content": "The Pro plan costs $29/month.",
+      "status": "confirmed",
+      "validFrom": "2026-01-01T00:00:00Z",
+      "validUntil": null,
+      "source": { "sourceType": "database", "contentTimestamp": "2026-01-01T00:00:00Z" }
+    }
+  ]
+}

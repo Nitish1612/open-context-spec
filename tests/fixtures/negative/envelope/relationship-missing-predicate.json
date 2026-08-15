@@ -1,0 +1,15 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:fixture-bad-relationship",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "relationships": [
+    {
+      "id": "urn:ulcs:rel:1",
+      "@type": "Relationship",
+      "subjectId": "urn:ulcs:entity:1",
+      "objectId": "urn:ulcs:entity:2"
+    }
+  ]
+}

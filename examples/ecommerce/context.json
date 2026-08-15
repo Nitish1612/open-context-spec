@@ -1,0 +1,190 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:ecommerce-support",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "objective": {
+    "id": "urn:ulcs:objective:1",
+    "@type": "Objective",
+    "summary": "Resolve a customer support request about a damaged order, offering a refund or replacement per policy.",
+    "successCriteria": [
+      "Customer is offered a concrete next step",
+      "Any promised action is consistent with policy"
+    ],
+    "nonGoals": ["Promising compensation beyond the stated refund/replacement policy"]
+  },
+  "actors": [
+    {
+      "id": "urn:ulcs:actor:customer",
+      "@type": "Actor",
+      "role": "user",
+      "displayName": "Jordan Rivera",
+      "actorType": "human"
+    },
+    {
+      "id": "urn:ulcs:actor:assistant",
+      "@type": "Actor",
+      "role": "assistant",
+      "actorType": "ai-agent"
+    }
+  ],
+  "instructions": [
+    {
+      "id": "urn:ulcs:instr:system-1",
+      "@type": "Instruction",
+      "authority": "system",
+      "content": "Be empathetic, factual, and never promise anything outside documented policy.",
+      "trust": { "level": "trusted", "providesData": false, "providesInstructions": true }
+    },
+    {
+      "id": "urn:ulcs:instr:developer-1",
+      "@type": "Instruction",
+      "authority": "developer",
+      "content": "Offer either a refund or a replacement, per constraint:refund-window.",
+      "trust": { "level": "trusted", "providesData": false, "providesInstructions": true }
+    }
+  ],
+  "constraints": [
+    {
+      "id": "urn:ulcs:constraint:refund-window",
+      "@type": "Constraint",
+      "content": "Refunds may only be offered for orders within 30 days of delivery.",
+      "constraintType": "must"
+    },
+    {
+      "id": "urn:ulcs:constraint:no-double-comp",
+      "@type": "Constraint",
+      "content": "Do not offer both a refund and a replacement for the same item.",
+      "constraintType": "must-not"
+    }
+  ],
+  "preferences": [
+    {
+      "id": "urn:ulcs:pref:1",
+      "@type": "Preference",
+      "content": "Customer prefers a replacement over a refund when both are available.",
+      "strength": 0.8
+    }
+  ],
+  "facts": [
+    {
+      "id": "urn:ulcs:fact:delivery-date",
+      "@type": "Fact",
+      "content": "Order #987 was delivered on 2026-08-10.",
+      "trust": { "level": "trusted", "providesData": true, "providesInstructions": false },
+      "source": { "sourceType": "database", "sourceId": "orders-db:987" }
+    }
+  ],
+  "entities": [
+    {
+      "id": "urn:ulcs:entity:order-987",
+      "@type": "Entity",
+      "name": "Order #987",
+      "entityType": "Order",
+      "properties": { "total": 129.0, "currency": "USD" }
+    },
+    {
+      "id": "urn:ulcs:entity:product-abc",
+      "@type": "Entity",
+      "name": "Wireless Headphones (Model ABC)",
+      "entityType": "Product"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "urn:ulcs:rel:1",
+      "@type": "Relationship",
+      "subjectId": "urn:ulcs:entity:order-987",
+      "predicate": "contains",
+      "objectId": "urn:ulcs:entity:product-abc",
+      "confidence": 1.0
+    }
+  ],
+  "decisions": [
+    {
+      "id": "urn:ulcs:decision:1",
+      "@type": "Decision",
+      "content": "Offered a replacement for the damaged item, consistent with the customer's stated preference.",
+      "decidedBy": "urn:ulcs:actor:assistant",
+      "decidedAt": "2026-08-15T12:01:00Z",
+      "rationale": "Order is within the 30-day refund window; customer prefers replacement; only one remedy is offered per policy.",
+      "reversible": true
+    }
+  ],
+  "questions": [
+    {
+      "id": "urn:ulcs:q:1",
+      "@type": "Question",
+      "content": "Does the customer want the replacement shipped to the same address?",
+      "resolved": false,
+      "answer": null
+    }
+  ],
+  "tools": [
+    {
+      "id": "urn:ulcs:tool:lookup-order",
+      "@type": "ToolDefinition",
+      "name": "lookup_order",
+      "description": "Look up an order by ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "orderId": { "type": "string" } },
+        "required": ["orderId"]
+      },
+      "sideEffects": "read-only"
+    }
+  ],
+  "toolResults": [
+    {
+      "id": "urn:ulcs:toolresult:1",
+      "@type": "ToolResult",
+      "toolCallId": "call_1",
+      "toolName": "lookup_order",
+      "outcome": "success",
+      "output": { "orderId": "987", "deliveredAt": "2026-08-10", "eligibleForRefund": true },
+      "trust": { "level": "untrusted", "providesData": true, "providesInstructions": false }
+    }
+  ],
+  "resources": [
+    {
+      "id": "urn:ulcs:res:policy",
+      "@type": "Resource",
+      "uri": "https://example.com/policy/returns",
+      "content": "Items may be refunded or replaced within 30 days of delivery, not both.",
+      "trust": { "level": "untrusted", "providesData": true, "providesInstructions": false },
+      "source": { "sourceType": "retrieved-document" }
+    }
+  ],
+  "conversation": [
+    {
+      "id": "urn:ulcs:msg:1",
+      "@type": "ConversationMessage",
+      "role": "user",
+      "content": "My headphones from order #987 arrived with a cracked case."
+    },
+    {
+      "id": "urn:ulcs:msg:2",
+      "@type": "ConversationMessage",
+      "role": "assistant",
+      "content": "I'm sorry to hear that! I can offer a free replacement — would that work for you?"
+    }
+  ],
+  "outputContract": {
+    "format": "text",
+    "mustInclude": ["refund", "replacement"],
+    "mustAvoid": ["guaranteed", "unlimited"],
+    "maxLength": 800
+  },
+  "security": {
+    "defaultTrust": "untrusted",
+    "untrustedWrapping": { "enabled": true, "style": "xml-tag" }
+  },
+  "tokenPolicy": {
+    "maxContextTokens": 4000,
+    "reservedOutputTokens": 500,
+    "deduplicate": true,
+    "allowTruncation": true,
+    "requiredItemIds": ["urn:ulcs:instr:system-1", "urn:ulcs:constraint:no-double-comp"]
+  }
+}

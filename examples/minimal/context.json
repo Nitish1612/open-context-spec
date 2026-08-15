@@ -1,0 +1,39 @@
+{
+  "@context": "https://ulcs.dev/context/v1",
+  "@type": "ContextEnvelope",
+  "schemaVersion": "1.0.0",
+  "id": "urn:ulcs:context:minimal-qa",
+  "createdAt": "2026-08-15T12:00:00Z",
+  "objective": {
+    "id": "urn:ulcs:objective:1",
+    "@type": "Objective",
+    "summary": "Answer the user's question about the ULCS project accurately and concisely."
+  },
+  "instructions": [
+    {
+      "id": "urn:ulcs:instr:system-1",
+      "@type": "Instruction",
+      "authority": "system",
+      "content": "You are a helpful assistant. Answer only using the facts provided in this context.",
+      "trust": { "level": "trusted", "providesData": false, "providesInstructions": true }
+    }
+  ],
+  "facts": [
+    {
+      "id": "urn:ulcs:fact:1",
+      "@type": "Fact",
+      "content": "ULCS (Universal LLM Context Schema) is a draft, vendor-neutral standard for representing context supplied to LLMs.",
+      "status": "confirmed",
+      "trust": { "level": "trusted", "providesData": true, "providesInstructions": false }
+    }
+  ],
+  "conversation": [
+    {
+      "id": "urn:ulcs:msg:1",
+      "@type": "ConversationMessage",
+      "role": "user",
+      "content": "What is ULCS?",
+      "timestamp": "2026-08-15T12:00:05Z"
+    }
+  ]
+}
