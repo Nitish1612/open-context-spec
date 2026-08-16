@@ -1,0 +1,11 @@
+# Normalize all text files to LF line endings in the working tree,
+# regardless of the platform or the local core.autocrlf setting. Without
+# this, a checkout on Windows with core.autocrlf=true converts every
+# tracked text file to CRLF, which then fails `prettier --check` (and
+# `pnpm run verify`/CI) wholesale — Prettier's default is LF, not the
+# platform default.
+* text=auto eol=lf
+
+# Preserve native line endings for Windows-only script files that expect them.
+*.cmd text eol=crlf
+*.bat text eol=crlf
