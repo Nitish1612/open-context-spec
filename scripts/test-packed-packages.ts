@@ -29,7 +29,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 
-const PACKAGES = ["core", "validator", "compiler", "adapters", "cli"] as const;
+const PACKAGES = ["core", "validator", "compiler", "adapters", "ingest", "cli"] as const;
 type PackageName = (typeof PACKAGES)[number];
 
 const NPM_NAME: Record<PackageName, string> = {
@@ -37,6 +37,7 @@ const NPM_NAME: Record<PackageName, string> = {
   validator: "@ulcs/validator",
   compiler: "@ulcs/compiler",
   adapters: "@ulcs/adapters",
+  ingest: "@ulcs/ingest",
   cli: "@ulcs/cli",
 };
 
@@ -111,12 +112,28 @@ import { createContext, normalizeContext, mergeContexts } from "@ulcs/core";
 import { validateContext } from "@ulcs/validator";
 import { compileContext } from "@ulcs/compiler";
 import { toOpenAIMessages, toAnthropicMessages, toGeminiContents, toGenericChatMessages, toMarkdownPrompt, toMCPResource } from "@ulcs/adapters";
+import { ingestText, ingestBuffer } from "@ulcs/ingest";
 
 const REPO_ROOT = ${JSON.stringify(repoRoot)};
 
-for (const [name, fn] of Object.entries({ createContext, normalizeContext, mergeContexts, validateContext, compileContext, toOpenAIMessages, toAnthropicMessages, toGeminiContents, toGenericChatMessages, toMarkdownPrompt, toMCPResource })) {
+for (const [name, fn] of Object.entries({ createContext, normalizeContext, mergeContexts, validateContext, compileContext, toOpenAIMessages, toAnthropicMessages, toGeminiContents, toGenericChatMessages, toMarkdownPrompt, toMCPResource, ingestText, ingestBuffer })) {
   if (typeof fn !== "function") throw new Error(\`\${name} did not import as a function\`);
 }
+
+// Convert a plain-text fixture and a structured (CSV) fixture through @ulcs/ingest, standalone.
+const textResult = await ingestText("Standalone ingest smoke test. This paragraph is long enough to form a real chunk.", { name: "smoke.txt" });
+if (textResult.chunks.length === 0) throw new Error("expected at least one chunk from the text fixture");
+const textValidation = validateContext(textResult.envelope);
+if (!textValidation.valid) throw new Error("ingested text envelope failed validation: " + JSON.stringify(textValidation.errors));
+
+const csvBytes = new TextEncoder().encode("name,role\\nAlice,Engineer\\nBob,Designer\\n");
+const csvResult = await ingestBuffer(csvBytes, { filename: "smoke.csv" });
+if (csvResult.documents[0].sections.length !== 2) throw new Error("expected 2 rows extracted from the CSV fixture, got " + csvResult.documents[0].sections.length);
+if (csvResult.chunks.length === 0) throw new Error("expected at least one chunk from the CSV fixture");
+const csvValidation = validateContext(csvResult.envelope);
+if (!csvValidation.valid) throw new Error("ingested CSV envelope failed validation: " + JSON.stringify(csvValidation.errors));
+
+console.log("OK: @ulcs/ingest converts text and structured fixtures into validated envelopes standalone.");
 
 const ctx = createContext({
   instructions: [
@@ -151,6 +168,7 @@ const paths = [
   import.meta.resolve("@ulcs/validator"),
   import.meta.resolve("@ulcs/compiler"),
   import.meta.resolve("@ulcs/adapters"),
+  import.meta.resolve("@ulcs/ingest"),
 ];
 for (const p of paths) {
   if (p.includes(REPO_ROOT)) throw new Error(\`resolved module path leaks into the monorepo: \${p}\`);
@@ -271,10 +289,36 @@ console.log(result.valid, compiled.totalEstimatedTokens, rendered.messages.lengt
 
     console.log("OK: installed CLI validate/normalize/compile/redact/diff all work.");
 
+    step("10b/12: Run the installed CLI's `ulcs ingest` command");
+    const ingestFixturePath = path.join(consumerDir, "smoke.txt");
+    writeFileSync(
+      ingestFixturePath,
+      "Standalone ulcs ingest smoke test. This paragraph is long enough to form a real chunk.",
+    );
+    run(`node "${cliBin}" ingest smoke.txt -o ingested.json --quiet`, consumerDir);
+    const ingestedPath = path.join(consumerDir, "ingested.json");
+    assert(existsSync(ingestedPath), "ulcs ingest did not produce output");
+    const ingestedDoc = JSON.parse(readFileSync(ingestedPath, "utf8"));
+    assert(
+      ingestedDoc["@type"] === "ContextEnvelope",
+      "ulcs ingest output is not a ContextEnvelope",
+    );
+    assert(
+      Array.isArray(ingestedDoc.resources) && ingestedDoc.resources.length > 0,
+      "ulcs ingest output has no resources",
+    );
+    const ingestValidateOut = run(`node "${cliBin}" validate ingested.json`, consumerDir);
+    assert(
+      ingestValidateOut.includes("valid"),
+      `ulcs ingest output failed validation: ${ingestValidateOut}`,
+    );
+    console.log("OK: installed CLI `ulcs ingest` command works and its output validates.");
+
     step("11/12: Confirm no runtime path depends on the source monorepo");
     const distFiles = [
       path.join(consumerDir, "node_modules", "@ulcs", "core", "dist", "index.js"),
       path.join(consumerDir, "node_modules", "@ulcs", "validator", "dist", "index.js"),
+      path.join(consumerDir, "node_modules", "@ulcs", "ingest", "dist", "index.js"),
       path.join(consumerDir, "node_modules", "@ulcs", "compiler", "dist", "index.js"),
       path.join(consumerDir, "node_modules", "@ulcs", "adapters", "dist", "index.js"),
       path.join(consumerDir, "node_modules", "@ulcs", "cli", "dist", "bin.js"),

@@ -48,6 +48,7 @@
     "@ulcs/adapters": "workspace:*",
     "@ulcs/compiler": "workspace:*",
     "@ulcs/core": "workspace:*",
+    "@ulcs/ingest": "workspace:*",
     "@ulcs/validator": "workspace:*",
     "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.18.0",

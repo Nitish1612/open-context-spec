@@ -17,6 +17,7 @@ import {
   validateContextPatch,
 } from "@ulcs/validator";
 import { parseJson, readInput, writeOutput } from "./io.js";
+import { registerIngestCommand } from "./ingest-command.js";
 
 export const CLI_VERSION = "0.1.0";
 
@@ -205,6 +206,8 @@ export function buildProgram(): Command {
         process.exitCode = 1;
       }
     });
+
+  registerIngestCommand(program);
 
   return program;
 }

@@ -23,6 +23,7 @@ export default defineConfig({
         "packages/validator/src/**/*.ts",
         "packages/compiler/src/**/*.ts",
         "packages/adapters/src/**/*.ts",
+        "packages/ingest/src/**/*.ts",
       ],
       exclude: ["packages/*/src/**/*.d.ts"],
       thresholds: {

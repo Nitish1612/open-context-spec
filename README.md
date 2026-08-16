@@ -230,6 +230,7 @@ open-context-spec/
 ├── packages/validator/    Ajv 2020-12 validation, bundled schemas, JSON-Pointer error paths
 ├── packages/compiler/     Deterministic token-budget compiler
 ├── packages/adapters/     OpenAI/Anthropic/Gemini/generic/Markdown/MCP renderers
+├── packages/ingest/       Universal ingestion: files/directories/URLs → ContextEnvelope, no LLM required
 ├── packages/cli/          `ulcs` binary
 ├── examples/               11 runnable example documents
 ├── tests/conformance/      Schema + spec-guarantee conformance tests
@@ -238,6 +239,24 @@ open-context-spec/
 ├── scripts/                 Schema lint, example validation, URI-consistency, packed-package smoke tests
 └── benchmark/               Honest, non-accuracy evaluation harness
 ```
+
+## Ingestion
+
+Convert files, directories, URLs, and structured inputs into a valid OCS
+`ContextEnvelope` — deterministically, with no LLM call required:
+
+```bash
+ulcs ingest document.pdf -o context.json
+ulcs ingest ./documents --recursive -o knowledge-base.json
+```
+
+Built-in support for `.txt` `.md` `.json` `.jsonl` `.csv` `.tsv` `.html`
+`.xml` `.pdf` `.docx` `.pptx` `.xlsx`, plus stdin, in-memory buffers, and
+SSRF-hardened `http(s)://` URL fetching, via an extensible extractor
+registry (`@ulcs/ingest`). Extracted content always lands in `resources`
+with untrusted, data-only trust — it can never become an instruction by
+itself. See [`docs/ingestion.md`](docs/ingestion.md) for architecture,
+security model, resource limits, and SDK/CLI reference.
 
 ## Maturity status
 
@@ -249,7 +268,8 @@ open-context-spec/
 | `@ulcs/validator`                   | Functional and standalone-publishable — schemas are bundled into the package (ADR-0006) and verified by a packed-tarball smoke test (`pnpm run test:packages`) that installs it outside the monorepo. |
 | `@ulcs/compiler`                    | Functional, deterministic, unit-tested.                                                                                                                                                               |
 | `@ulcs/adapters`                    | Functional for the six documented targets; no live provider SDK calls.                                                                                                                                |
-| `@ulcs/cli`                         | Functional; all six commands exercised by tests and by the packed-package smoke test.                                                                                                                 |
+| `@ulcs/ingest`                      | Functional; 12 built-in extractors, SSRF/zip-bomb/XXE/path-traversal hardened, unit-tested. Pre-1.0 — API may still shift.                                                                            |
+| `@ulcs/cli`                         | Functional; all six `compile`/`validate`/... commands plus `ingest` exercised by tests and by the packed-package smoke test.                                                                          |
 | npm publication                     | **Not published.** Package names are unverified placeholders — see "Known limitations."                                                                                                               |
 | Experimental provenance signing     | Explicitly out of the stable API — see `specification/v1/provenance.md#5`.                                                                                                                            |
 

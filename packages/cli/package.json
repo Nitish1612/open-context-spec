@@ -52,6 +52,7 @@
     "@ulcs/validator": "workspace:*",
     "@ulcs/compiler": "workspace:*",
     "@ulcs/adapters": "workspace:*",
+    "@ulcs/ingest": "workspace:*",
     "commander": "^12.1.0"
   },
   "devDependencies": {
