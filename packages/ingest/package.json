@@ -50,7 +50,7 @@
   "dependencies": {
     "@ulcs/core": "workspace:*",
     "@ulcs/validator": "workspace:*",
-    "cheerio": "^1.2.0",
+    "cheerio": "1.0.0",
     "exceljs": "^4.4.0",
     "fast-xml-parser": "^5.11.0",
     "jszip": "^3.10.1",
