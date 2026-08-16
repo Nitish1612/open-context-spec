@@ -1,0 +1,412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ulcs.dev/schemas/v1/context-item.schema.json",
+  "title": "ULCS Context Item",
+  "description": "Base model and per-type schemas for all ULCS context items. See specification/v1/vocabulary.md.",
+  "$defs": {
+    "ContextItemBase": {
+      "type": "object",
+      "required": ["id", "@type"],
+      "properties": {
+        "id": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+        "@type": { "$ref": "definitions/common.schema.json#/$defs/typeName" },
+        "content": { "type": "string" },
+        "status": { "$ref": "definitions/common.schema.json#/$defs/status" },
+        "priority": { "$ref": "definitions/common.schema.json#/$defs/priority" },
+        "relevance": { "$ref": "definitions/common.schema.json#/$defs/unitInterval" },
+        "scope": { "$ref": "definitions/common.schema.json#/$defs/scope" },
+        "validFrom": { "$ref": "definitions/common.schema.json#/$defs/timestamp" },
+        "validUntil": { "$ref": "definitions/common.schema.json#/$defs/nullableTimestamp" },
+        "source": { "$ref": "definitions/provenance.schema.json#/$defs/Provenance" },
+        "trust": { "$ref": "definitions/trust.schema.json#/$defs/TrustLabel" },
+        "sensitivity": { "$ref": "definitions/sensitivity.schema.json#/$defs/SensitivityLabel" },
+        "tags": { "$ref": "definitions/common.schema.json#/$defs/tags" },
+        "relationships": {
+          "type": "array",
+          "items": { "$ref": "definitions/common.schema.json#/$defs/relationshipRef" }
+        },
+        "tokenEstimate": { "type": "number", "minimum": 0 },
+        "extensions": { "$ref": "definitions/common.schema.json#/$defs/extensions" }
+      }
+    },
+
+    "Objective": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type"],
+          "properties": {
+            "@type": { "const": "Objective" },
+            "summary": { "type": "string" },
+            "successCriteria": { "type": "array", "items": { "type": "string" } },
+            "nonGoals": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Task": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "name"],
+          "properties": {
+            "@type": { "const": "Task" },
+            "name": { "type": "string", "minLength": 1 },
+            "taskStatus": {
+              "type": "string",
+              "enum": ["pending", "in-progress", "blocked", "completed", "cancelled"]
+            },
+            "parentTaskId": { "type": ["string", "null"] }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Actor": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "role"],
+          "properties": {
+            "@type": { "const": "Actor" },
+            "role": { "type": "string", "minLength": 1 },
+            "displayName": { "type": "string" },
+            "actorType": {
+              "type": "string",
+              "enum": ["human", "ai-agent", "system", "organization"]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Entity": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "name", "entityType"],
+          "properties": {
+            "@type": { "const": "Entity" },
+            "name": { "type": "string", "minLength": 1 },
+            "entityType": { "type": "string", "minLength": 1 },
+            "properties": { "type": "object" },
+            "sameAs": {
+              "type": "array",
+              "items": { "$ref": "definitions/common.schema.json#/$defs/uri" }
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Relationship": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "subjectId", "predicate", "objectId"],
+          "properties": {
+            "@type": { "const": "Relationship" },
+            "subjectId": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+            "predicate": { "type": "string", "minLength": 1 },
+            "objectId": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+            "confidence": { "$ref": "definitions/common.schema.json#/$defs/unitInterval" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Instruction": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "authority", "content"],
+          "properties": {
+            "@type": { "const": "Instruction" },
+            "authority": {
+              "type": "string",
+              "enum": ["system", "developer", "application", "user", "tool", "retrieved-content"]
+            },
+            "conflictsWith": {
+              "type": "array",
+              "items": { "$ref": "definitions/common.schema.json#/$defs/identifier" }
+            },
+            "precedenceNotes": { "type": "string" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Fact": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content"],
+          "properties": {
+            "@type": { "const": "Fact" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Assumption": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content"],
+          "properties": {
+            "@type": { "const": "Assumption" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Constraint": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content", "constraintType"],
+          "properties": {
+            "@type": { "const": "Constraint" },
+            "constraintType": {
+              "type": "string",
+              "enum": ["must", "must-not", "should", "should-not"]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Preference": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content"],
+          "properties": {
+            "@type": { "const": "Preference" },
+            "strength": { "$ref": "definitions/common.schema.json#/$defs/unitInterval" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Decision": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content"],
+          "properties": {
+            "@type": { "const": "Decision" },
+            "decidedBy": { "type": "string" },
+            "decidedAt": { "$ref": "definitions/common.schema.json#/$defs/timestamp" },
+            "rationale": { "type": "string" },
+            "reversible": { "type": "boolean" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Question": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content", "resolved"],
+          "properties": {
+            "@type": { "const": "Question" },
+            "askedBy": { "type": "string" },
+            "resolved": { "type": "boolean" },
+            "answer": { "type": ["string", "null"] }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "ConversationMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "role", "content"],
+          "properties": {
+            "@type": { "const": "ConversationMessage" },
+            "role": { "type": "string", "enum": ["user", "assistant", "system", "tool"] },
+            "name": { "type": "string" },
+            "timestamp": { "$ref": "definitions/common.schema.json#/$defs/timestamp" },
+            "toolCallId": { "type": "string" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "MemoryItem": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content", "memoryType"],
+          "properties": {
+            "@type": { "const": "MemoryItem" },
+            "memoryType": {
+              "type": "string",
+              "enum": ["episodic", "semantic", "procedural", "profile"]
+            },
+            "importance": { "$ref": "definitions/common.schema.json#/$defs/unitInterval" },
+            "lastAccessedAt": { "$ref": "definitions/common.schema.json#/$defs/timestamp" },
+            "decay": { "$ref": "definitions/common.schema.json#/$defs/unitInterval" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Resource": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type"],
+          "properties": {
+            "@type": { "const": "Resource" },
+            "uri": { "$ref": "definitions/common.schema.json#/$defs/uri" },
+            "mimeType": { "type": "string" },
+            "title": { "type": "string" },
+            "encoding": { "type": "string", "enum": ["utf-8", "base64"] }
+          },
+          "anyOf": [{ "required": ["uri"] }, { "required": ["content"] }]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "ToolDefinition": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "name"],
+          "properties": {
+            "@type": { "const": "ToolDefinition" },
+            "name": { "type": "string", "minLength": 1 },
+            "description": { "type": "string" },
+            "inputSchema": { "type": "object" },
+            "outputSchema": { "type": "object" },
+            "sideEffects": {
+              "type": "string",
+              "enum": ["none", "read-only", "write", "external"]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "ToolResult": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "toolName", "outcome", "output"],
+          "properties": {
+            "@type": { "const": "ToolResult" },
+            "toolCallId": { "type": "string" },
+            "toolName": { "type": "string", "minLength": 1 },
+            "outcome": {
+              "type": "string",
+              "enum": ["success", "error"],
+              "description": "Execution outcome of the tool call. Distinct from the inherited lifecycle 'status' field."
+            },
+            "output": {},
+            "error": { "type": "string" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "ContextSummary": {
+      "allOf": [
+        { "$ref": "#/$defs/ContextItemBase" },
+        {
+          "type": "object",
+          "required": ["@type", "content", "summarizedItemIds"],
+          "properties": {
+            "@type": { "const": "ContextSummary" },
+            "summarizedItemIds": {
+              "type": "array",
+              "items": { "$ref": "definitions/common.schema.json#/$defs/identifier" }
+            },
+            "method": { "type": "string" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "Error": {
+      "type": "object",
+      "required": ["@type", "code", "message", "severity"],
+      "properties": {
+        "@type": { "const": "Error" },
+        "id": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "itemId": { "$ref": "definitions/common.schema.json#/$defs/identifier" },
+        "severity": { "type": "string", "enum": ["warning", "error", "fatal"] },
+        "extensions": { "$ref": "definitions/common.schema.json#/$defs/extensions" }
+      },
+      "additionalProperties": false
+    },
+
+    "ContextItem": {
+      "oneOf": [
+        { "$ref": "#/$defs/Objective" },
+        { "$ref": "#/$defs/Task" },
+        { "$ref": "#/$defs/Actor" },
+        { "$ref": "#/$defs/Entity" },
+        { "$ref": "#/$defs/Relationship" },
+        { "$ref": "#/$defs/Instruction" },
+        { "$ref": "#/$defs/Fact" },
+        { "$ref": "#/$defs/Assumption" },
+        { "$ref": "#/$defs/Constraint" },
+        { "$ref": "#/$defs/Preference" },
+        { "$ref": "#/$defs/Decision" },
+        { "$ref": "#/$defs/Question" },
+        { "$ref": "#/$defs/ConversationMessage" },
+        { "$ref": "#/$defs/MemoryItem" },
+        { "$ref": "#/$defs/Resource" },
+        { "$ref": "#/$defs/ToolDefinition" },
+        { "$ref": "#/$defs/ToolResult" },
+        { "$ref": "#/$defs/ContextSummary" },
+        { "$ref": "#/$defs/Error" },
+        { "$ref": "definitions/provenance.schema.json#/$defs/Citation" }
+      ]
+    }
+  },
+
+  "$ref": "#/$defs/ContextItem"
+}

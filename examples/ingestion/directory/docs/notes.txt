@@ -1,0 +1,1 @@
+Plain-text notes used by the directory-ingestion example.

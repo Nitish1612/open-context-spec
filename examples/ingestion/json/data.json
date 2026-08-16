@@ -1,0 +1,8 @@
+{
+  "product": "Widget Pro",
+  "price": 49.99,
+  "specs": {
+    "weightKg": 1.2,
+    "colors": ["black", "silver"]
+  }
+}

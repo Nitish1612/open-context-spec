@@ -1,0 +1,65 @@
+{
+  "name": "@ulcs/ingest",
+  "version": "0.1.0",
+  "description": "Open Context Specification (OCS) — universal ingestion: converts files, directories, URLs, and structured inputs into ULCS ContextEnvelope documents via an extensible extractor/plugin architecture, without requiring an LLM. Provisional package name; drafted under the working name Universal LLM Context Schema (ULCS), see ADR-0004.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nitish1612/open-context-spec.git",
+    "directory": "packages/ingest"
+  },
+  "bugs": {
+    "url": "https://github.com/Nitish1612/open-context-spec/issues"
+  },
+  "homepage": "https://github.com/Nitish1612/open-context-spec/tree/main/packages/ingest#readme",
+  "keywords": [
+    "llm",
+    "context-engineering",
+    "ingestion",
+    "extraction",
+    "rag",
+    "json-schema",
+    "typescript",
+    "open-context-specification"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --target node18",
+    "dev": "tsup src/index.ts --format esm --dts --watch --target node18",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ulcs/core": "workspace:*",
+    "@ulcs/validator": "workspace:*",
+    "cheerio": "1.0.0",
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.11.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.1",
+    "minimatch": "^10.2.6",
+    "unpdf": "^1.8.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "tsup": "^8.3.5"
+  }
+}

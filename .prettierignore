@@ -2,3 +2,9 @@ dist
 coverage
 node_modules
 pnpm-lock.yaml
+
+# Generated CLI output committed verbatim as an example — must stay
+# byte-for-byte what `ulcs compile` actually emits, not what Prettier's
+# Markdown formatter would prefer. Regenerate via the command in
+# examples/provider-adapters/README.md, never hand-format.
+examples/provider-adapters/output.markdown.md

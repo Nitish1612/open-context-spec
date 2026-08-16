@@ -2,13 +2,16 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// See specification/decisions/0003-package-boundaries.md: the validator
-// reads schema documents directly from the repository's top-level
-// `schemas/` directory to keep a single source of truth. This is a known
-// limitation for a standalone `npm publish` of this package — see the
-// repository README's "Known limitations" section.
+// See ADR-0006 (specification/decisions/0006-validator-schema-bundling.md):
+// schema documents are bundled into this package at ./schemas (checked
+// into git, kept in sync with the repository's top-level schemas/v1/ by
+// scripts/sync-validator-schemas.ts and verified by `pnpm run
+// check:validator-schemas` in CI) so that @ulcs/validator resolves them
+// from its own package contents — no repository-relative path, and no
+// network access — whether run inside this monorepo or installed
+// standalone from a published tarball.
 const here = path.dirname(fileURLToPath(import.meta.url));
-const schemasRoot = path.resolve(here, "../../../schemas");
+const schemasRoot = path.resolve(here, "../schemas");
 
 function readJson(relativePath: string): object {
   const full = path.join(schemasRoot, relativePath);

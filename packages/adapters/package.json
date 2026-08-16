@@ -1,8 +1,28 @@
 {
   "name": "@ulcs/adapters",
   "version": "0.1.0",
-  "description": "Universal LLM Context Schema — provider-neutral adapters that render compiled context into OpenAI/Anthropic/Gemini/generic/Markdown/MCP request shapes.",
+  "description": "Open Context Specification (OCS) — provider-neutral adapters that render compiled context into OpenAI/Anthropic/Gemini/generic/Markdown/MCP request shapes. Provisional package name; drafted under the working name Universal LLM Context Schema (ULCS), see ADR-0004.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nitish1612/open-context-spec.git",
+    "directory": "packages/adapters"
+  },
+  "bugs": {
+    "url": "https://github.com/Nitish1612/open-context-spec/issues"
+  },
+  "homepage": "https://github.com/Nitish1612/open-context-spec/tree/main/packages/adapters#readme",
+  "keywords": [
+    "llm",
+    "context-engineering",
+    "openai",
+    "anthropic",
+    "gemini",
+    "mcp",
+    "provider-adapter",
+    "typescript",
+    "open-context-specification"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -14,9 +34,14 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "sideEffects": false,
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --target node18",
     "dev": "tsup src/index.ts --format esm --dts --watch --target node18",

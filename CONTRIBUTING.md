@@ -1,7 +1,12 @@
-# Contributing to ULCS
+# Contributing to the Open Context Specification
 
-Thanks for considering a contribution. ULCS is a draft specification plus a
-TypeScript reference implementation — contributions to either are welcome.
+Thanks for considering a contribution. Open Context Specification (OCS) is
+an experimental draft specification plus a TypeScript reference
+implementation — contributions to either are welcome. Source identifiers
+(`@ulcs/*` packages, the `ulcs` CLI, `urn:ulcs:*`) are provisional
+compatibility names inherited from the project's working title; see
+[ADR-0004](./specification/decisions/0004-ocs-branding-and-ulcs-migration.md)
+before renaming anything.
 
 ## Ground rules
 
@@ -24,15 +29,19 @@ pnpm run test
 Useful scripts (see `package.json`):
 
 ```bash
-pnpm run typecheck        # tsc --noEmit across all packages
-pnpm run lint              # eslint
-pnpm run lint:schemas      # compiles every JSON Schema through Ajv
-pnpm run format             # prettier --write
-pnpm run test               # vitest (unit + conformance + interoperability)
-pnpm run coverage            # vitest with coverage thresholds
-pnpm run validate:examples   # validates every examples/**/context.json
-pnpm run benchmark            # runs the evaluation harness
-pnpm run verify                # everything above, in CI order
+pnpm run typecheck             # tsc --noEmit across all packages
+pnpm run lint                  # eslint
+pnpm run lint:schemas          # compiles every JSON Schema through Ajv
+pnpm run check:uris            # verifies schema/context identifiers are internally consistent
+pnpm run check:validator-schemas  # verifies the bundled validator schemas match schemas/v1/
+pnpm run sync:validator-schemas   # regenerates the bundled validator schemas
+pnpm run format                 # prettier --write
+pnpm run test                   # vitest (unit + conformance + interoperability)
+pnpm run coverage                # vitest with coverage thresholds
+pnpm run validate:examples       # validates every examples/**/context.json
+pnpm run test:packages           # packs + installs every package outside the monorepo (requires network access)
+pnpm run benchmark               # runs the evaluation harness
+pnpm run verify                  # everything above except test:packages, in CI order
 ```
 
 Run `pnpm run verify` before opening a PR — it's exactly what CI runs.
@@ -45,11 +54,53 @@ short: `specification/` is prose, `schemas/` is the normative JSON Schema,
 
 ## Making a specification change
 
+Use the **Specification change proposal** issue template — it walks
+through problem statement, proposed change, use cases, alternatives,
+compatibility/security/adapter impact, migration path, test impact, and
+a proposed review period. Fill in every section; an incomplete proposal
+just means review starts later, not that it's rejected.
+
+### Classifying a specification change
+
+Every proposal gets classified as one of:
+
+- **Editorial** — spec prose clarification, typo fix, or non-normative
+  example change. No schema, type, or behavior change. Lightest review;
+  no ADR required, no fixture changes expected.
+- **Backward-compatible** — a new optional field, a new allowed
+  vocabulary value, or a clarification that doesn't change how any
+  existing valid document validates or is interpreted. Requires a
+  matching schema/type update and new positive fixtures, but existing
+  documents keep validating with the same meaning.
+- **Breaking** — changes what an existing document validates as, or
+  changes the meaning of an existing field/value. Requires a version
+  bump per the README's versioning policy, an explicit migration path,
+  and updated fixtures for both the old and new behavior where
+  practical.
+- **Security-sensitive** — touches trust levels, provenance, redaction/
+  sensitivity handling, or instruction-following precedence (see
+  `specification/v1/security.md` and `specification/v1/provenance.md`),
+  regardless of whether it's otherwise additive or breaking. Gets the
+  longest review period and explicit security-impact sign-off before
+  merging, since these are the semantics that decide whether untrusted
+  content can gain instruction-following weight it shouldn't have.
+- **Experimental extension** — a namespaced extension field/value (not a
+  core vocabulary addition) meant to be tried before it's proposed for
+  the core spec. Lower bar to merge since it doesn't change core
+  validation, but should still document what happens when a consumer
+  that doesn't understand the extension encounters it.
+
+The classification determines the required review period (suggested in
+the template) and whether an ADR is required before merging — see below.
+
 Specification changes (new fields, new types, changed semantics) need:
 
 1. An update to the relevant file(s) under `specification/v1/`.
 2. A matching update to `schemas/v1/*.schema.json` and, if it's a
-   TypeScript-surface change, `packages/core/src/types.ts`.
+   TypeScript-surface change, `packages/core/src/types.ts`. If you changed
+   a schema file, also run `pnpm run sync:validator-schemas` — the bundled
+   copy in `packages/validator/schemas/` (see ADR-0006) must stay in sync,
+   and `pnpm run check:validator-schemas` in CI will fail otherwise.
 3. **An ADR** under `specification/decisions/`, numbered sequentially
    (`NNNN-short-title.md`), following the format of the existing ones:
    Status, Context, Decision, Consequences (and Alternatives considered,
@@ -103,13 +154,10 @@ Example: `feat(compiler): add per-section relevance override`.
 
 Releases follow Semantic Versioning (see the README). Until governance
 formally transitions (see [GOVERNANCE.md](./GOVERNANCE.md)), maintainers
-cut releases by:
-
-1. Updating `CHANGELOG.md` (Keep a Changelog format) under a new version
-   heading.
-2. Bumping affected `package.json` versions.
-3. Tagging `vX.Y.Z` and publishing via CI once package names are confirmed
-   available (see README "Known limitations").
+cut releases by working through [RELEASING.md](./RELEASING.md)'s
+checklist — changelog, version bumps, full verification, packed-package
+smoke tests, and package-name/domain-ownership confirmation, in that
+order, before any tag or publish.
 
 Pre-1.0, expect breaking changes in minor releases; they're always called
 out in the changelog.

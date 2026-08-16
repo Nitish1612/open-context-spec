@@ -1,8 +1,29 @@
 {
   "name": "@ulcs/core",
   "version": "0.1.0",
-  "description": "Universal LLM Context Schema — core types and deterministic context algorithms (create, normalize, merge, patch, dedupe, filter, rank, redact, export).",
+  "description": "Open Context Specification (OCS) — core types and deterministic context algorithms (create, normalize, merge, patch, dedupe, filter, rank, redact, export). Provisional package name; drafted under the working name Universal LLM Context Schema (ULCS), see ADR-0004.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nitish1612/open-context-spec.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/Nitish1612/open-context-spec/issues"
+  },
+  "homepage": "https://github.com/Nitish1612/open-context-spec/tree/main/packages/core#readme",
+  "keywords": [
+    "llm",
+    "context-engineering",
+    "ai-agents",
+    "rag",
+    "mcp",
+    "json-schema",
+    "json-ld",
+    "typescript",
+    "interoperability",
+    "open-context-specification"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -14,9 +35,14 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "sideEffects": false,
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --target node18",
     "dev": "tsup src/index.ts --format esm --dts --watch --target node18",
