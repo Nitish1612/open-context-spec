@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { ExtractionError } from "../errors.js";
 import { assertWithinCount, resolveLimits } from "../security/limits.js";
+import { inspectOfficeArchive } from "../security/officeArchive.js";
 import type {
   ContentExtractor,
   ExtractedDocument,
@@ -66,6 +67,14 @@ export const xlsxExtractor: ContentExtractor = {
   async extract(input: ResolvedInput, options: ExtractionOptions): Promise<ExtractedDocument> {
     const limits = resolveLimits(options.limits);
     if (!input.data) throw new ExtractionError("XLSX extractor requires resolved byte content.");
+
+    // Preflight the archive's central directory (entry count, total
+    // uncompressed size, per-entry compression ratio, entry-name safety)
+    // BEFORE handing the bytes to ExcelJS, which otherwise decompresses
+    // the entire workbook eagerly inside `.load()` with no size checks of
+    // its own — this is what actually stops a compression-bomb XLSX from
+    // being decompressed in the first place.
+    await inspectOfficeArchive(input.data, limits);
 
     const workbook = new ExcelJS.Workbook();
     try {

@@ -7,7 +7,7 @@ import type {
   ExtractionOptions,
   ResolvedInput,
 } from "../types.js";
-import { buildExtractedDocument, decodeUtf8Strict, warn } from "./util.js";
+import { buildExtractedDocument, decodeTextSafely, warn } from "./util.js";
 
 interface HeadingSplit {
   title?: string;
@@ -71,7 +71,10 @@ export const markdownExtractor: ContentExtractor = {
     if (!input.data)
       throw new ExtractionError("Markdown extractor requires resolved byte content.");
 
-    const { text, hadInvalidSequences } = decodeUtf8Strict(input.data);
+    const { text, hadInvalidSequences } = decodeTextSafely(input.data, {
+      tolerant: options.tolerantTextDecoding,
+      maxInvalidSequenceRatio: options.maxInvalidSequenceRatio,
+    });
     assertWithinCharLimit(text.length, limits.maxExtractedChars, "Extracted text");
 
     const splits = splitMarkdownSections(text);

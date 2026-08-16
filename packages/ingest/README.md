@@ -103,10 +103,14 @@ registry.register(myExtractor);
 ```
 
 See [`examples/ingestion/custom-extractor`](../../examples/ingestion/custom-extractor)
-for a runnable example, and `docs/ingestion.md` for guidance on building
-extractors for OCR, images/vision, audio/video transcription, email
-archives, source code, database exports, and cloud storage/API sources —
-all of which stay **outside** this deterministic core.
+for a runnable example. OCR is wired in for scanned PDF pages when an
+`OcrProvider` is configured (`--ocr-provider` on the CLI, or
+`ExtractionOptions.ocrProvider` on the SDK) — see
+[`docs/ingestion.md`](../../docs/ingestion.md#ocr-configuration). For
+images/vision, audio/video transcription, email archives, source code,
+database exports, and cloud storage/API sources, `docs/ingestion.md` has
+guidance on building a `ContentExtractor` — those stay **outside** this
+deterministic core.
 
 ## Security model (summary)
 

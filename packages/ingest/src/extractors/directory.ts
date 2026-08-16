@@ -21,6 +21,26 @@ export interface WalkedFile {
   size: number;
 }
 
+export type SkipReason =
+  | "hidden"
+  | "ignored-directory"
+  | "excluded-by-pattern"
+  | "not-included-by-pattern"
+  | "symlink"
+  | "unreadable"
+  | "not-a-regular-file"
+  | "directory-not-recursed";
+
+export interface SkippedEntry {
+  relativePath: string;
+  reason: SkipReason;
+}
+
+export interface WalkDirectoryResult {
+  files: WalkedFile[];
+  skipped: SkippedEntry[];
+}
+
 function isHidden(name: string): boolean {
   return name.startsWith(".");
 }
@@ -36,10 +56,15 @@ function matchesAny(path: string, patterns: string[] | undefined): boolean {
  * default, never following symlinks (unless `followSymlinks` is enabled by
  * the caller), and enforcing directory-wide file-count/byte-size limits.
  */
-export function walkDirectory(rootDir: string, options: WalkDirectoryOptions): WalkedFile[] {
+export function walkDirectory(rootDir: string, options: WalkDirectoryOptions): WalkDirectoryResult {
   const results: WalkedFile[] = [];
+  const skipped: SkippedEntry[] = [];
   const loopGuard = new SymlinkLoopGuard();
   let totalBytes = 0;
+
+  function skip(relativePath: string, reason: SkipReason): void {
+    skipped.push({ relativePath, reason });
+  }
 
   function visit(dir: string): void {
     let entries: string[];
@@ -56,13 +81,17 @@ export function walkDirectory(rootDir: string, options: WalkDirectoryOptions): W
       const absolutePath = join(dir, name);
       const relativePath = relative(rootDir, absolutePath).split("\\").join("/");
 
-      if (isHidden(name)) continue;
+      if (isHidden(name)) {
+        skip(relativePath, "hidden");
+        continue;
+      }
 
       let stats;
       try {
         stats = statSync(absolutePath);
       } catch {
-        continue; // Broken symlink or race with deletion — skip.
+        skip(relativePath, "unreadable"); // Broken symlink or race with deletion.
+        continue;
       }
 
       let lstatIsSymlink = false;
@@ -75,24 +104,43 @@ export function walkDirectory(rootDir: string, options: WalkDirectoryOptions): W
         // Symlinks are never followed by default; detect loops defensively
         // in case a future caller opts in.
         loopGuard.check(absolutePath);
+        skip(relativePath, "symlink");
         continue;
       }
 
       if (stats.isDirectory()) {
-        if (DEFAULT_IGNORED_DIRS.has(name)) continue;
-        if (matchesAny(relativePath, options.exclude)) continue;
-        if (options.recursive === true) visit(absolutePath);
+        if (DEFAULT_IGNORED_DIRS.has(name)) {
+          skip(relativePath, "ignored-directory");
+          continue;
+        }
+        if (matchesAny(relativePath, options.exclude)) {
+          skip(relativePath, "excluded-by-pattern");
+          continue;
+        }
+        if (options.recursive === true) {
+          visit(absolutePath);
+        } else {
+          skip(relativePath, "directory-not-recursed");
+        }
         continue;
       }
 
-      if (!stats.isFile()) continue;
-      if (matchesAny(relativePath, options.exclude)) continue;
+      if (!stats.isFile()) {
+        skip(relativePath, "not-a-regular-file");
+        continue;
+      }
+      if (matchesAny(relativePath, options.exclude)) {
+        skip(relativePath, "excluded-by-pattern");
+        continue;
+      }
       if (
         options.include &&
         options.include.length > 0 &&
         !matchesAny(relativePath, options.include)
-      )
+      ) {
+        skip(relativePath, "not-included-by-pattern");
         continue;
+      }
 
       totalBytes += stats.size;
       assertWithinByteLimit(
@@ -111,5 +159,5 @@ export function walkDirectory(rootDir: string, options: WalkDirectoryOptions): W
   }
 
   visit(rootDir);
-  return results;
+  return { files: results, skipped };
 }

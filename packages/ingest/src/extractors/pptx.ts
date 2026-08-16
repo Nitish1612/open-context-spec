@@ -1,6 +1,6 @@
-import JSZip from "jszip";
 import { ExtractionError } from "../errors.js";
-import { assertSafeArchive, assertWithinCount, resolveLimits } from "../security/limits.js";
+import { assertWithinCount, resolveLimits } from "../security/limits.js";
+import { inspectOfficeArchive } from "../security/officeArchive.js";
 import type {
   ContentExtractor,
   ExtractedDocument,
@@ -97,25 +97,10 @@ export const pptxExtractor: ContentExtractor = {
     const limits = resolveLimits(options.limits);
     if (!input.data) throw new ExtractionError("PPTX extractor requires resolved byte content.");
 
-    const zip = await JSZip.loadAsync(input.data).catch((error: unknown) => {
-      throw new ExtractionError(
-        `Failed to open PPTX as a zip archive (malformed container): ${error instanceof Error ? error.message : String(error)}`,
-        error,
-      );
-    });
-    const entries = Object.values(zip.files)
-      .filter((f) => !f.dir)
-      .map((f) => {
-        const meta = (
-          f as unknown as { _data?: { compressedSize?: number; uncompressedSize?: number } }
-        )._data;
-        return {
-          name: f.name,
-          compressedSize: meta?.compressedSize ?? 0,
-          uncompressedSize: meta?.uncompressedSize ?? 0,
-        };
-      });
-    assertSafeArchive(entries, limits);
+    // Preflight the archive's central directory (entry count, total
+    // uncompressed size, per-entry compression ratio, entry-name safety,
+    // required OOXML structure) before decompressing any slide content.
+    const { zip } = await inspectOfficeArchive(input.data, limits);
 
     const slideFiles = Object.keys(zip.files)
       .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))

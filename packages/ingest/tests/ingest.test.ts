@@ -73,6 +73,29 @@ describe("ingestDirectory", () => {
     expect(result.documents[0]?.filename).toBe("visible.txt");
   });
 
+  it("Defect 10: reports hidden files and ignored directories as skipped, not silently dropped", async () => {
+    writeFileSync(join(dir, ".hidden.txt"), "should be ignored");
+    mkdirSync(join(dir, "node_modules"));
+    writeFileSync(join(dir, "node_modules", "pkg.txt"), "should be ignored too");
+    writeFileSync(
+      join(dir, "visible.txt"),
+      "Visible content long enough to survive minimum chunk size checks.",
+    );
+    const result = await ingestDirectory(dir);
+    const summary = result.report.directorySummary!;
+    // node_modules itself is reported as one skipped entry (the directory),
+    // not enumerated file-by-file — its contents are never even statted.
+    expect(summary.skipped).toBe(2);
+    const skippedFiles = summary.files.filter((f) => f.status === "skipped");
+    expect(skippedFiles.map((f) => f.path).sort()).toEqual([".hidden.txt", "node_modules"]);
+    for (const f of skippedFiles) {
+      expect(f.reason).toBeTruthy();
+    }
+    // Total accounted-for entries (processed + skipped) must cover
+    // everything that was actually present at the top level.
+    expect(summary.processed + summary.skipped).toBe(3);
+  });
+
   it("does not recurse into subdirectories unless --recursive is set", async () => {
     mkdirSync(join(dir, "sub"));
     writeFileSync(
@@ -90,6 +113,21 @@ describe("ingestDirectory", () => {
     expect(deep.report.directorySummary?.processed).toBe(2);
   });
 
+  it("Defect 10: reports a non-recursed subdirectory as skipped with an explanatory reason", async () => {
+    mkdirSync(join(dir, "sub"));
+    writeFileSync(join(dir, "sub", "nested.txt"), "Nested content, only found when recursive.");
+    writeFileSync(
+      join(dir, "top.txt"),
+      "Top-level content long enough to survive minimum chunk size checks.",
+    );
+    const result = await ingestDirectory(dir);
+    const summary = result.report.directorySummary!;
+    expect(summary.skipped).toBe(1);
+    const subEntry = summary.files.find((f) => f.path === "sub");
+    expect(subEntry?.status).toBe("skipped");
+    expect(subEntry?.reason).toMatch(/recursive/i);
+  });
+
   it("respects include/exclude glob patterns", async () => {
     writeFileSync(
       join(dir, "keep.txt"),
@@ -101,6 +139,30 @@ describe("ingestDirectory", () => {
     );
     const result = await ingestDirectory(dir, { exclude: ["skip.txt"] });
     expect(result.documents.map((d) => d.filename)).toEqual(["keep.txt"]);
+  });
+
+  it("Defect 10: reports an excluded file as skipped, and a not-included file as skipped", async () => {
+    writeFileSync(
+      join(dir, "keep.txt"),
+      "Keep this content long enough to survive minimum chunk size checks.",
+    );
+    writeFileSync(
+      join(dir, "skip.txt"),
+      "Skip this content long enough to survive minimum chunk size checks.",
+    );
+    const excluded = await ingestDirectory(dir, { exclude: ["skip.txt"] });
+    const excludedEntry = excluded.report.directorySummary?.files.find(
+      (f) => f.path === "skip.txt",
+    );
+    expect(excludedEntry?.status).toBe("skipped");
+    expect(excludedEntry?.reason).toBeTruthy();
+
+    const included = await ingestDirectory(dir, { include: ["keep.txt"] });
+    const notIncludedEntry = included.report.directorySummary?.files.find(
+      (f) => f.path === "skip.txt",
+    );
+    expect(notIncludedEntry?.status).toBe("skipped");
+    expect(notIncludedEntry?.reason).toBeTruthy();
   });
 
   it("continues past a single failing file by default and records it as failed", async () => {
@@ -170,5 +232,19 @@ describe.skipIf(!canSymlink)("ingestDirectory symlink handling", () => {
     // Only the real file is processed — the symlink is skipped, not followed.
     expect(result.report.directorySummary?.processed).toBe(1);
     expect(result.documents[0]?.filename).toBe("real.txt");
+  });
+
+  it("Defect 10: reports the symlink itself as a skipped entry with a symlink reason", async () => {
+    writeFileSync(
+      join(dir, "real.txt"),
+      "Real content long enough to survive minimum chunk size checks yes.",
+    );
+    symlinkSync(join(dir, "real.txt"), join(dir, "link.txt"));
+    const result = await ingestDirectory(dir);
+    const summary = result.report.directorySummary!;
+    expect(summary.skipped).toBe(1);
+    const linkEntry = summary.files.find((f) => f.path === "link.txt");
+    expect(linkEntry?.status).toBe("skipped");
+    expect(linkEntry?.reason).toMatch(/symlink/i);
   });
 });

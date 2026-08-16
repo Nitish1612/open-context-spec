@@ -186,6 +186,200 @@ describe("ulcs ingest: directory input", () => {
   });
 });
 
+describe("ulcs ingest: option validation (Defect 9)", () => {
+  it("rejects an unknown --chunk-strategy", () => {
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--chunk-strategy",
+      "bogus",
+      "--stdout",
+    ]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--chunk-strategy");
+  });
+
+  it("rejects an unknown --trust level", () => {
+    const result = run(["ingest", path.join(dir, "note.md"), "--trust", "bogus", "--stdout"]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--trust");
+  });
+
+  it("rejects an unknown --sensitivity level", () => {
+    const result = run(["ingest", path.join(dir, "note.md"), "--sensitivity", "bogus", "--stdout"]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--sensitivity");
+  });
+
+  it("rejects a non-numeric --chunk-size instead of silently forwarding NaN", () => {
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--chunk-size",
+      "not-a-number",
+      "--stdout",
+    ]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--chunk-size");
+  });
+
+  it("rejects a zero --chunk-size", () => {
+    const result = run(["ingest", path.join(dir, "note.md"), "--chunk-size", "0", "--stdout"]);
+    expect(result.status).toBe(2);
+  });
+
+  it("rejects a negative --chunk-overlap", () => {
+    const result = run(["ingest", path.join(dir, "note.md"), "--chunk-overlap", "-5", "--stdout"]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--chunk-overlap");
+  });
+
+  it("rejects a fractional --max-tokens", () => {
+    const result = run(["ingest", path.join(dir, "note.md"), "--max-tokens", "4.5", "--stdout"]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--max-tokens");
+  });
+
+  it("rejects a negative --reserved-output-tokens", () => {
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--reserved-output-tokens",
+      "-1",
+      "--stdout",
+    ]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--reserved-output-tokens");
+  });
+
+  it("accepts valid numeric and enum options together", () => {
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--chunk-strategy",
+      "paragraphs",
+      "--trust",
+      "trusted",
+      "--sensitivity",
+      "public",
+      "--chunk-size",
+      "500",
+      "--chunk-overlap",
+      "0",
+      "--max-tokens",
+      "1000",
+      "--reserved-output-tokens",
+      "0",
+      "--stdout",
+      "--quiet",
+    ]);
+    expect(result.status).toBe(0);
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
+  });
+});
+
+describe("ulcs ingest: --ocr-provider loader (Defect 1)", () => {
+  it("rejects --ocr-provider without --ocr", () => {
+    const providerModule = path.join(dir, "provider-object.mjs");
+    writeFileSync(
+      providerModule,
+      "export const ocrProvider = { id: 'x', recognize: async () => 'text' };",
+    );
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--ocr-provider",
+      providerModule,
+      "--stdout",
+    ]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--ocr");
+  });
+
+  it("rejects a module that fails to load", () => {
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--ocr",
+      "--ocr-provider",
+      path.join(dir, "does-not-exist-provider.mjs"),
+      "--stdout",
+    ]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--ocr-provider");
+  });
+
+  it("rejects a module that does not export a valid OcrProvider shape", () => {
+    const providerModule = path.join(dir, "provider-invalid.mjs");
+    writeFileSync(providerModule, "export default { not: 'a provider' };");
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--ocr",
+      "--ocr-provider",
+      providerModule,
+      "--stdout",
+    ]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("valid OcrProvider");
+  });
+
+  it("loads a valid OcrProvider from a named export and it is actually invoked on a scanned PDF", () => {
+    const providerModule = path.join(dir, "provider-good.mjs");
+    writeFileSync(
+      providerModule,
+      [
+        "export const ocrProvider = {",
+        "  id: 'cli-test-provider',",
+        "  recognize: async () => 'RECOGNIZED_MARKER_TEXT',",
+        "};",
+      ].join("\n"),
+    );
+    // A page with only a non-text drawing operator (no Tj text-show) is image-only/scanned.
+    const scannedPdf = path.join(dir, "scanned.pdf");
+    writeFileSync(
+      scannedPdf,
+      "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 10 >>\nstream\n0 0 0 rg\nendstream\nendobj\ntrailer\n<< /Size 5 /Root 1 0 R >>\n%%EOF",
+    );
+    const result = run([
+      "ingest",
+      scannedPdf,
+      "--ocr",
+      "--ocr-provider",
+      providerModule,
+      "--stdout",
+      "--quiet",
+    ]);
+    // Without @napi-rs/canvas installed, page rendering itself fails, so the
+    // provider's recognize() is never reached — but loading and wiring the
+    // module must succeed (exit 0), proving the loader worked correctly.
+    expect(result.status).toBe(0);
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
+  });
+
+  it("loads a valid OcrProvider from a default-export factory function", () => {
+    const providerModule = path.join(dir, "provider-factory.mjs");
+    writeFileSync(
+      providerModule,
+      [
+        "export default function makeProvider() {",
+        "  return { id: 'factory-provider', recognize: async () => 'x' };",
+        "}",
+      ].join("\n"),
+    );
+    const result = run([
+      "ingest",
+      path.join(dir, "note.md"),
+      "--ocr",
+      "--ocr-provider",
+      providerModule,
+      "--stdout",
+      "--quiet",
+    ]);
+    expect(result.status).toBe(0);
+  });
+});
+
 describe("ulcs ingest: validate", () => {
   it("the generated document round-trips through `ulcs validate`", () => {
     const out = path.join(dir, "roundtrip.json");

@@ -91,11 +91,19 @@ export function mapDocumentsToContext(
 
   const instructions: Instruction[] = [];
   if (options.includeDefaultInstruction !== false) {
+    // Default authority is deliberately "user" — the lowest authority in
+    // the precedence order (specification/v1/precedence.md). Ingestion
+    // never has grounds to speak with "system"/"developer"/"application"
+    // authority on its own: that would be an unearned escalation coming
+    // from a file the caller happened to hand us. A host application that
+    // has independently decided its own ingestion pipeline should carry
+    // higher authority must say so explicitly via
+    // `mapping.defaultInstructionAuthority` — the CLI never sets this.
     instructions.push({
       id: generateId("instr"),
       "@type": "Instruction",
       content: DEFAULT_DATA_USAGE_INSTRUCTION,
-      authority: "system",
+      authority: options.defaultInstructionAuthority ?? "user",
       trust: { level: "trusted", providesInstructions: true },
     });
   }

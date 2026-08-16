@@ -7,7 +7,7 @@ import type {
   ExtractionOptions,
   ResolvedInput,
 } from "../types.js";
-import { buildExtractedDocument, decodeUtf8Strict, warn } from "./util.js";
+import { buildExtractedDocument, decodeTextSafely, warn } from "./util.js";
 
 /**
  * RFC 4180-ish delimited-text parser: handles quoted fields (with escaped
@@ -110,7 +110,10 @@ function makeCsvExtractor(
       if (!input.data)
         throw new ExtractionError(`${name} extractor requires resolved byte content.`);
 
-      const { text, hadInvalidSequences } = decodeUtf8Strict(input.data);
+      const { text, hadInvalidSequences } = decodeTextSafely(input.data, {
+        tolerant: options.tolerantTextDecoding,
+        maxInvalidSequenceRatio: options.maxInvalidSequenceRatio,
+      });
       assertWithinCharLimit(text.length, limits.maxExtractedChars, "Extracted text");
 
       const delimiter = options.delimiter ?? defaultDelimiter;

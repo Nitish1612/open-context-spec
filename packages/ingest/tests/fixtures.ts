@@ -26,6 +26,35 @@ export function minimalPdfBytes(): Uint8Array {
   return new Uint8Array(Buffer.from(pdf, "latin1"));
 }
 
+/**
+ * A minimal, valid two-page PDF: page 1 has real extractable text, page 2 has
+ * only a non-text drawing operator (image-only/scanned, no Tj text-show).
+ */
+export function multiPagePdfMixedScanned(): Uint8Array {
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 200 200] /Contents 6 0 R >>\nendobj\n",
+    "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+    "5 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 7 0 R >>\nendobj\n",
+    "6 0 obj\n<< /Length 44 >>\nstream\nBT /F1 24 Tf 10 100 Td (Hello PDF) Tj ET\nendstream\nendobj\n",
+    "7 0 obj\n<< /Length 10 >>\nstream\n0 0 0 rg\nendstream\nendobj\n",
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  for (const obj of objects) {
+    offsets.push(Buffer.byteLength(pdf, "latin1"));
+    pdf += obj;
+  }
+  const xrefStart = Buffer.byteLength(pdf, "latin1");
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const offset of offsets) {
+    pdf += `${offset.toString().padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+  return new Uint8Array(Buffer.from(pdf, "latin1"));
+}
+
 /** A minimal, valid DOCX package with one heading and one paragraph. */
 export async function minimalDocxBytes(): Promise<Uint8Array> {
   const zip = new JSZip();

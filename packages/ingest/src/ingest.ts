@@ -2,7 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { basename, resolve as resolvePath } from "node:path";
 import { validateContext } from "@ulcs/validator";
 import { chunkDocument } from "./chunking/index.js";
-import { walkDirectory } from "./extractors/directory.js";
+import { walkDirectory, type SkipReason } from "./extractors/directory.js";
 import {
   NotFoundError,
   SecurityRejectionError,
@@ -11,7 +11,7 @@ import {
 } from "./errors.js";
 import { mapDocumentsToContext } from "./mapper.js";
 import { getDefaultRegistry, type ExtractorRegistry } from "./registry.js";
-import { assertWithinByteLimit, resolveLimits } from "./security/limits.js";
+import { assertWithinByteLimit, combineSignals, resolveLimits } from "./security/limits.js";
 import { fetchUrlSafely } from "./security/urls.js";
 import type {
   Chunk,
@@ -94,6 +94,7 @@ export async function resolveInput(
       const result = await fetchUrlSafely(source.url, {
         limits,
         allowPrivateNetworkUrls: options.allowPrivateNetworkUrls,
+        acceptErrorResponses: options.acceptErrorResponses,
         signal: options.signal,
       });
       return {
@@ -115,12 +116,76 @@ export async function extractDocument(
 ): Promise<{ document: ExtractedDocument; extractorId: string; detectedMediaType?: string }> {
   const registry = deps.registry ?? getDefaultRegistry();
   const detection = await registry.detect(input, { type: options.type });
-  const document = await detection.extractor.extract(input, options);
-  return {
-    document,
-    extractorId: detection.extractor.id,
-    detectedMediaType: detection.detectedMediaType,
-  };
+  const limits = resolveLimits(options.limits);
+
+  // Every extractor — built-in or custom — runs under the same deadline,
+  // combined with any caller-supplied AbortSignal, and both are exposed to
+  // the extractor as one signal so an extractor that checks
+  // `options.signal` reacts to either. Third-party libraries that can't
+  // truly be cancelled mid-operation (e.g. a synchronous parse loop) will
+  // keep running in the background, but the promise this function returns
+  // still rejects promptly at the deadline either way; `withTimeout` also
+  // ensures a late-settling extractor call can never surface as an
+  // unhandled rejection or mutate an already-returned result.
+  const timeoutController = new AbortController();
+  const timer = setTimeout(
+    () =>
+      timeoutController.abort(
+        new SecurityRejectionError(
+          `Extraction with "${detection.extractor.id}" exceeded the deadline of ${limits.extractionTimeoutMs}ms.`,
+          {
+            timeoutMs: limits.extractionTimeoutMs,
+            extractorId: detection.extractor.id,
+          },
+        ),
+      ),
+    limits.extractionTimeoutMs,
+  );
+  const { signal: combined, dispose } = combineSignals([options.signal, timeoutController.signal]);
+
+  // `withTimeout` alone only races against its own fixed timer — an
+  // extractor that ignores the `signal` it's handed (most third-party
+  // libraries do) would never actually be cut off by a caller's own
+  // AbortSignal firing early. Racing directly against `combined`'s abort
+  // event (which fires for *either* the deadline or the caller's signal)
+  // is what actually makes cancellation work regardless of whether the
+  // extractor itself cooperates.
+  let settled = false;
+  const abortRace = new Promise<never>((_, reject) => {
+    const onAbort = () =>
+      reject(
+        combined.reason instanceof Error
+          ? combined.reason
+          : new SecurityRejectionError("Extraction was aborted.", {}),
+      );
+    if (combined.aborted) onAbort();
+    else combined.addEventListener("abort", onAbort, { once: true });
+  });
+
+  try {
+    const extractPromise = detection.extractor
+      .extract(input, { ...options, signal: combined })
+      .then((doc) => {
+        settled = true;
+        return doc;
+      })
+      .catch((error: unknown) => {
+        if (settled) return undefined as never; // already lost the race; swallow to avoid an unhandled rejection
+        settled = true;
+        throw error;
+      });
+
+    const document = await Promise.race([extractPromise, abortRace]);
+    return {
+      document,
+      extractorId: detection.extractor.id,
+      detectedMediaType: detection.detectedMediaType,
+    };
+  } finally {
+    settled = true; // any later extractor settlement is now known-late and gets swallowed above
+    clearTimeout(timer);
+    dispose();
+  }
 }
 
 function buildReport(
@@ -244,6 +309,17 @@ export async function ingestBuffer(
   );
 }
 
+const SKIP_REASON_MESSAGES: Record<SkipReason, string> = {
+  hidden: "Hidden file or directory (dotfile), excluded by default.",
+  "ignored-directory": "Directory is in the default-ignored set (e.g. node_modules, .git).",
+  "excluded-by-pattern": "Matched an --exclude glob pattern.",
+  "not-included-by-pattern": "Did not match any --include glob pattern.",
+  symlink: "Symlinks are never followed.",
+  unreadable: "Could not be stat'd (broken symlink or removed during the walk).",
+  "not-a-regular-file": "Not a regular file (e.g. a socket, device, or FIFO).",
+  "directory-not-recursed": "Subdirectory not descended into; pass --recursive to include it.",
+};
+
 export async function ingestDirectory(
   path: string,
   options: IngestOptions & { recursive?: boolean } = {},
@@ -255,7 +331,7 @@ export async function ingestDirectory(
   );
   const rootPath = resolvePath(path);
 
-  const files = walkDirectory(rootPath, {
+  const { files, skipped } = walkDirectory(rootPath, {
     recursive: options.recursive,
     include: options.include,
     exclude: options.exclude,
@@ -265,6 +341,14 @@ export async function ingestDirectory(
   const documents: ExtractedDocument[] = [];
   const fileResults: DirectoryFileResult[] = [];
   const onError = options.onError ?? "continue";
+
+  for (const entry of skipped) {
+    fileResults.push({
+      path: entry.relativePath,
+      status: "skipped",
+      reason: SKIP_REASON_MESSAGES[entry.reason],
+    });
+  }
 
   for (const file of files) {
     try {
@@ -280,6 +364,8 @@ export async function ingestDirectory(
       }
     }
   }
+
+  fileResults.sort((a, b) => a.path.localeCompare(b.path));
 
   const directorySummary = {
     processed: fileResults.filter((f) => f.status === "processed").length,

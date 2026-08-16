@@ -1,4 +1,4 @@
-import { extractText, getDocumentProxy, getMeta } from "unpdf";
+import { extractText, getDocumentProxy, getMeta, renderPageAsImage } from "unpdf";
 import { CapabilityUnavailableError, ExtractionError } from "../errors.js";
 import { assertWithinCharLimit, assertWithinCount, resolveLimits } from "../security/limits.js";
 import type {
@@ -66,13 +66,62 @@ export const pdfExtractor: ContentExtractor = {
 
     if (scannedPages.length > 0) {
       if (options.ocr && options.ocrProvider) {
-        warnings.push(
-          warn(
-            "unsupported-feature",
-            `OCR was requested; this build does not perform OCR inline for pages [${scannedPages.join(", ")}] — pass page images to the configured OCR provider separately.`,
-            { pages: scannedPages },
-          ),
-        );
+        const ocrProvider = options.ocrProvider;
+        for (const pageNumber of scannedPages) {
+          let imageBuffer: ArrayBuffer;
+          try {
+            imageBuffer = await renderPageAsImage(proxy, pageNumber, { scale: 2 });
+          } catch (error) {
+            warnings.push(
+              warn(
+                "unsupported-feature",
+                `Could not render page ${pageNumber} as an image for OCR. This requires the ` +
+                  `optional "@napi-rs/canvas" dependency to be installed alongside @ulcs/ingest. ` +
+                  `(${error instanceof Error ? error.message : String(error)})`,
+                { page: pageNumber },
+              ),
+            );
+            continue;
+          }
+
+          let recognizedText: string;
+          try {
+            recognizedText = await ocrProvider.recognize(new Uint8Array(imageBuffer), {
+              language: options.ocrLanguage,
+            });
+          } catch (error) {
+            warnings.push(
+              warn(
+                "ocr-unavailable",
+                `OCR provider "${ocrProvider.id}" failed on page ${pageNumber}: ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
+                { page: pageNumber },
+              ),
+            );
+            continue;
+          }
+
+          const trimmedOcrText = recognizedText.trim();
+          if (trimmedOcrText.length === 0) {
+            warnings.push(
+              warn("ocr-unavailable", `OCR produced no text for page ${pageNumber}.`, {
+                page: pageNumber,
+              }),
+            );
+            continue;
+          }
+
+          totalChars += trimmedOcrText.length;
+          sections.push({
+            id: `section:ocr-${pageNumber}`,
+            page: pageNumber,
+            content: trimmedOcrText,
+            metadata: { ocr: true, ocrProviderId: ocrProvider.id },
+          });
+        }
+        sections.sort((a, b) => (a.page ?? 0) - (b.page ?? 0));
+        assertWithinCharLimit(totalChars, limits.maxExtractedChars, "Extracted text");
       } else if (options.ocr && !options.ocrProvider) {
         throw new CapabilityUnavailableError(
           `--ocr was requested but no OCR provider is configured. Pages [${scannedPages.join(", ")}] appear to be image-only/scanned and cannot be extracted without one.`,

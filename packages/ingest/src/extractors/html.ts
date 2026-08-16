@@ -8,7 +8,7 @@ import type {
   ExtractionOptions,
   ResolvedInput,
 } from "../types.js";
-import { buildExtractedDocument, decodeUtf8Strict, warn } from "./util.js";
+import { buildExtractedDocument, decodeTextSafely, warn } from "./util.js";
 
 const NOISE_SELECTORS = [
   "script",
@@ -36,7 +36,10 @@ export const htmlExtractor: ContentExtractor = {
     const limits = resolveLimits(options.limits);
     if (!input.data) throw new ExtractionError("HTML extractor requires resolved byte content.");
 
-    const { text, hadInvalidSequences } = decodeUtf8Strict(input.data);
+    const { text, hadInvalidSequences } = decodeTextSafely(input.data, {
+      tolerant: options.tolerantTextDecoding,
+      maxInvalidSequenceRatio: options.maxInvalidSequenceRatio,
+    });
     assertWithinCharLimit(text.length, limits.maxExtractedChars, "Extracted text");
 
     // cheerio parses markup only — it never executes <script> content or

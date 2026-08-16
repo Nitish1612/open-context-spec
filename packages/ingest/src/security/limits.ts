@@ -74,27 +74,73 @@ export function assertSafeArchive(
   );
 }
 
-/** Runs `fn` under a timeout, rejecting with a clear error rather than hanging. */
+/**
+ * Runs `fn` under a timeout, rejecting with a clear error rather than
+ * hanging. If `fn`'s promise settles *after* the timeout has already
+ * fired, its result/rejection is swallowed (attached with a no-op catch)
+ * rather than left as an unhandled rejection — the caller only ever sees
+ * the timeout outcome, and the late settlement can never mutate anything
+ * the caller already moved on from.
+ */
 export async function withTimeout<T>(
   fn: () => Promise<T>,
   timeoutMs: number,
   label: string,
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
   try {
+    const inner = fn();
     return await Promise.race([
-      fn(),
+      inner.catch((error: unknown) => {
+        if (timedOut) return undefined as never; // already resolved via timeout path below; swallow
+        throw error;
+      }),
       new Promise<T>((_, reject) => {
-        timer = setTimeout(
-          () =>
-            reject(
-              new SecurityRejectionError(`${label} timed out after ${timeoutMs}ms.`, { timeoutMs }),
-            ),
-          timeoutMs,
-        );
+        timer = setTimeout(() => {
+          timedOut = true;
+          // Prevent an unhandled-rejection warning if `inner` later rejects.
+          inner.catch(() => undefined);
+          reject(
+            new SecurityRejectionError(`${label} timed out after ${timeoutMs}ms.`, { timeoutMs }),
+          );
+        }, timeoutMs);
       }),
     ]);
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+/**
+ * Combines multiple `AbortSignal`s into one that fires when any of them
+ * fires, preserving whichever signal's `reason` triggered it — without
+ * requiring Node 20's `AbortSignal.any` (this package supports Node
+ * 18.18+). Call `dispose()` once the combined signal is no longer needed
+ * to remove the listeners it registered on the source signals.
+ */
+export function combineSignals(signals: Array<AbortSignal | undefined>): {
+  signal: AbortSignal;
+  dispose: () => void;
+} {
+  const controller = new AbortController();
+  const present = signals.filter((s): s is AbortSignal => s !== undefined);
+  const listeners: Array<[AbortSignal, () => void]> = [];
+  for (const s of present) {
+    if (s.aborted) {
+      controller.abort(s.reason);
+      break;
+    }
+    const handler = () => {
+      if (!controller.signal.aborted) controller.abort(s.reason);
+    };
+    s.addEventListener("abort", handler, { once: true });
+    listeners.push([s, handler]);
+  }
+  return {
+    signal: controller.signal,
+    dispose: () => {
+      for (const [s, handler] of listeners) s.removeEventListener("abort", handler);
+    },
+  };
 }

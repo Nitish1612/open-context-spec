@@ -1,4 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+import { isAbsolute, resolve as resolvePath } from "node:path";
 import type { Command } from "commander";
 import { validateContext, formatValidationErrors } from "@ulcs/validator";
 import {
@@ -11,6 +13,7 @@ import {
   type IngestOptions,
   type IngestResult,
   type IngestionReport,
+  type OcrProvider,
 } from "@ulcs/ingest";
 import { compileContext } from "@ulcs/compiler";
 import {
@@ -52,6 +55,8 @@ interface IngestCliOptions {
   type?: string;
   recursive?: boolean;
   ocr?: boolean;
+  ocrProvider?: string;
+  ocrLanguage?: string;
   chunkStrategy: string;
   chunkSize?: string;
   chunkOverlap?: string;
@@ -85,6 +90,93 @@ function parseMetadata(raw: string | undefined): Record<string, unknown> | undef
       `Failed to parse --metadata as JSON: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+}
+
+/**
+ * Parses a CLI numeric option as a non-negative integer, or returns
+ * `undefined` when the option was not supplied. Unlike a bare `Number(...)`
+ * call, this rejects garbage (`NaN`), negative values, and non-integers with
+ * a clear CLI-level error instead of silently forwarding `NaN` (or a
+ * nonsensical negative limit) into the ingestion pipeline, where it would
+ * surface — if at all — as a confusing internal error far from the flag the
+ * user actually got wrong.
+ */
+function parseIntOption(
+  raw: string | undefined,
+  flagName: string,
+  { minimum }: { minimum: 0 | 1 },
+): number | undefined {
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < minimum) {
+    throw new CliOptionError(
+      `Invalid value for ${flagName}: "${raw}". Expected an integer >= ${minimum}.`,
+    );
+  }
+  return value;
+}
+
+function parseEnumOption<T extends string>(
+  raw: string | undefined,
+  flagName: string,
+  allowed: readonly T[],
+): T | undefined {
+  if (raw === undefined) return undefined;
+  if (!allowed.includes(raw as T)) {
+    throw new CliOptionError(
+      `Unknown value for ${flagName}: "${raw}". Expected one of: ${allowed.join(", ")}.`,
+    );
+  }
+  return raw as T;
+}
+
+class CliOptionError extends Error {}
+
+function isOcrProvider(value: unknown): value is OcrProvider {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { id?: unknown }).id === "string" &&
+    typeof (value as { recognize?: unknown }).recognize === "function"
+  );
+}
+
+/**
+ * Loads an `OcrProvider` from a host-supplied module for `--ocr-provider`.
+ * The module may be a bare package specifier or a file path (absolute, or
+ * relative to the current working directory). The provider is read from,
+ * in order: a named `ocrProvider` export, or the default export — either
+ * directly (an object shaped like `OcrProvider`) or as a zero-argument
+ * factory function that returns one, so a provider that needs to read
+ * config/env at construction time doesn't have to do it at module load time.
+ */
+async function loadOcrProvider(spec: string): Promise<OcrProvider> {
+  const isFilePath = spec.startsWith(".") || isAbsolute(spec);
+  const importSpecifier = isFilePath ? pathToFileURL(resolvePath(spec)).href : spec;
+
+  let mod: Record<string, unknown>;
+  try {
+    mod = (await import(importSpecifier)) as Record<string, unknown>;
+  } catch (error) {
+    throw new CliOptionError(
+      `Failed to load --ocr-provider "${spec}": ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  const candidate = mod.ocrProvider ?? mod.default;
+  const resolved =
+    typeof candidate === "function" ? await (candidate as () => unknown)() : candidate;
+
+  if (!isOcrProvider(resolved)) {
+    throw new CliOptionError(
+      `--ocr-provider "${spec}" did not export a valid OcrProvider. Expected a named ` +
+        `"ocrProvider" export or a default export — either an object with { id: string, ` +
+        `recognize(image, options?) } or a zero-argument factory function returning one.`,
+    );
+  }
+  return resolved;
 }
 
 function detectInputKind(input: string): "url" | "directory" | "stdin" | "file" {
@@ -136,6 +228,12 @@ export function registerIngestCommand(program: Command): void {
     .option("--type <type>", "explicit extractor id, overriding automatic detection")
     .option("--recursive", "recurse into subdirectories (directory input only)", false)
     .option("--ocr", "attempt OCR on image-only/scanned pages, if a provider is configured", false)
+    .option(
+      "--ocr-provider <module>",
+      "module (package name or file path) exporting an OcrProvider, as a named " +
+        '"ocrProvider" export or default export (object or zero-arg factory)',
+    )
+    .option("--ocr-language <lang>", "language hint passed through to the OCR provider")
     .option(
       "--chunk-strategy <strategy>",
       `chunking strategy: ${CHUNK_STRATEGIES.join(", ")}`,
@@ -200,6 +298,11 @@ export function registerIngestCommand(program: Command): void {
       try {
         await runIngestCommand(input, opts);
       } catch (error) {
+        if (error instanceof CliOptionError) {
+          if (!opts.quiet) console.error(error.message);
+          process.exitCode = 2;
+          return;
+        }
         if (error instanceof IngestError) {
           if (!opts.quiet) console.error(error.message);
           process.exitCode = error.exitCode;
@@ -217,40 +320,48 @@ async function runIngestCommand(input: string, opts: IngestCliOptions): Promise<
     process.exitCode = 2;
     return;
   }
-  const target = opts.target as Target;
-  if (!TARGETS.includes(target)) {
-    console.error(`Unknown target "${opts.target}". Expected one of: ${TARGETS.join(", ")}`);
-    process.exitCode = 2;
-    return;
+  const target = parseEnumOption(opts.target, "--target", TARGETS) as Target;
+  const onError = parseEnumOption(opts.onError, "--on-error", ["stop", "continue"] as const);
+  const chunkStrategy = parseEnumOption(opts.chunkStrategy, "--chunk-strategy", CHUNK_STRATEGIES);
+  const trust = parseEnumOption(opts.trust, "--trust", TRUST_LEVELS);
+  const sensitivity = parseEnumOption(opts.sensitivity, "--sensitivity", SENSITIVITY_LEVELS);
+
+  const chunkSize = parseIntOption(opts.chunkSize, "--chunk-size", { minimum: 1 });
+  const chunkOverlap = parseIntOption(opts.chunkOverlap, "--chunk-overlap", { minimum: 0 });
+  const maxTokens = parseIntOption(opts.maxTokens, "--max-tokens", { minimum: 1 });
+  const reservedOutputTokens = parseIntOption(
+    opts.reservedOutputTokens,
+    "--reserved-output-tokens",
+    { minimum: 0 },
+  );
+
+  if (opts.ocrProvider && !opts.ocr) {
+    throw new CliOptionError("--ocr-provider requires --ocr to also be set.");
   }
-  if (!["stop", "continue"].includes(opts.onError)) {
-    console.error(`Unknown --on-error value "${opts.onError}". Expected "stop" or "continue".`);
-    process.exitCode = 2;
-    return;
-  }
+  const ocrProvider = opts.ocrProvider ? await loadOcrProvider(opts.ocrProvider) : undefined;
 
   const metadata = parseMetadata(opts.metadata);
 
   const ingestOptions: IngestOptions = {
     type: opts.type,
     ocr: opts.ocr,
-    strategy: opts.chunkStrategy as ChunkStrategy,
-    maxChars: opts.chunkSize ? Number(opts.chunkSize) : undefined,
-    overlap: opts.chunkOverlap ? Number(opts.chunkOverlap) : undefined,
+    ocrProvider,
+    ocrLanguage: opts.ocrLanguage,
+    strategy: chunkStrategy,
+    maxChars: chunkSize,
+    overlap: chunkOverlap,
     include: opts.include,
     exclude: opts.exclude,
-    onError: opts.onError as "stop" | "continue",
+    onError,
     mapping: {
-      trust: opts.trust as (typeof TRUST_LEVELS)[number] | undefined,
-      sensitivity: opts.sensitivity as (typeof SENSITIVITY_LEVELS)[number] | undefined,
+      trust,
+      sensitivity,
       tags: opts.tag && opts.tag.length > 0 ? opts.tag : undefined,
       metadata,
       objective: opts.objective,
       instruction: opts.instruction,
-      maxContextTokens: opts.maxTokens ? Number(opts.maxTokens) : undefined,
-      reservedOutputTokens: opts.reservedOutputTokens
-        ? Number(opts.reservedOutputTokens)
-        : undefined,
+      maxContextTokens: maxTokens,
+      reservedOutputTokens,
     },
   };
 

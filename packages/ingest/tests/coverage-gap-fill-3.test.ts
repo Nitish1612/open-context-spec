@@ -8,6 +8,7 @@ import {
   htmlExtractor,
 } from "../src/index.js";
 import type { ResolvedInput } from "../src/index.js";
+import { ExtractionError } from "../src/index.js";
 import JSZip from "jszip";
 
 function bufInput(data: Uint8Array, filename: string): ResolvedInput {
@@ -15,9 +16,19 @@ function bufInput(data: Uint8Array, filename: string): ResolvedInput {
 }
 
 describe("markdown extractor: remaining branches", () => {
-  it("warns on invalid UTF-8 byte sequences", async () => {
+  it("rejects invalid UTF-8 byte sequences by default (Defect 12)", async () => {
     const invalid = new Uint8Array([0x23, 0x20, 0xff, 0xfe, 0x0a]); // "# " + invalid bytes
-    const doc = await markdownExtractor.extract(bufInput(invalid, "bad.md"), {});
+    await expect(markdownExtractor.extract(bufInput(invalid, "bad.md"), {})).rejects.toThrow(
+      ExtractionError,
+    );
+  });
+
+  it("warns (rather than rejects) on invalid UTF-8 when tolerantTextDecoding is set", async () => {
+    const invalid = new Uint8Array([0x23, 0x20, 0xff, 0xfe, 0x0a]); // "# " + invalid bytes
+    const doc = await markdownExtractor.extract(bufInput(invalid, "bad.md"), {
+      tolerantTextDecoding: true,
+      maxInvalidSequenceRatio: 1,
+    });
     expect(doc.warnings.some((w) => w.code === "malformed-content")).toBe(true);
   });
 
@@ -28,48 +39,80 @@ describe("markdown extractor: remaining branches", () => {
   });
 });
 
-describe("json extractor: invalid UTF-8 warning", () => {
-  it("warns on invalid UTF-8 byte sequences while still parsing valid JSON text", async () => {
-    const jsonText = '{"a":1}';
-    const invalid = new Uint8Array([...new TextEncoder().encode(jsonText), 0xff, 0xfe]);
+describe("json extractor: invalid UTF-8 handling (Defect 12)", () => {
+  function withInvalidInString(): Uint8Array {
     // Appending invalid trailing bytes after valid JSON would break parsing,
     // so instead embed invalid bytes inside a string value's raw bytes.
-    const withInvalidInString = new Uint8Array([
+    return new Uint8Array([
       ...new TextEncoder().encode('{"a":"'),
       0xff,
       0xfe,
       ...new TextEncoder().encode('"}'),
     ]);
-    void invalid;
+  }
+
+  it("rejects invalid UTF-8 byte sequences by default", async () => {
+    const data = withInvalidInString();
+    await expect(
+      jsonExtractor.extract(
+        { source: { kind: "buffer", data, filename: "d.json" }, data, filename: "d.json" },
+        {},
+      ),
+    ).rejects.toThrow(ExtractionError);
+  });
+
+  it("warns (rather than rejects) and still parses valid JSON text when tolerantTextDecoding is set", async () => {
+    const data = withInvalidInString();
     const doc = await jsonExtractor.extract(
-      {
-        source: { kind: "buffer", data: withInvalidInString, filename: "d.json" },
-        data: withInvalidInString,
-        filename: "d.json",
-      },
-      {},
+      { source: { kind: "buffer", data, filename: "d.json" }, data, filename: "d.json" },
+      { tolerantTextDecoding: true, maxInvalidSequenceRatio: 1 },
     );
     expect(doc.warnings.some((w) => w.code === "malformed-content")).toBe(true);
   });
 });
 
-describe("csv extractor: invalid UTF-8 warning", () => {
-  it("warns on invalid UTF-8 byte sequences", async () => {
+describe("csv extractor: invalid UTF-8 handling (Defect 12)", () => {
+  it("rejects invalid UTF-8 byte sequences by default", async () => {
     const invalid = new Uint8Array([...new TextEncoder().encode("a,b\n1,"), 0xff, 0xfe, 0x0a]);
-    const doc = await csvExtractor.extract(bufInput(invalid, "bad.csv"), {});
+    await expect(csvExtractor.extract(bufInput(invalid, "bad.csv"), {})).rejects.toThrow(
+      ExtractionError,
+    );
+  });
+
+  it("warns (rather than rejects) on invalid UTF-8 when tolerantTextDecoding is set", async () => {
+    const invalid = new Uint8Array([...new TextEncoder().encode("a,b\n1,"), 0xff, 0xfe, 0x0a]);
+    const doc = await csvExtractor.extract(bufInput(invalid, "bad.csv"), {
+      tolerantTextDecoding: true,
+      maxInvalidSequenceRatio: 1,
+    });
     expect(doc.warnings.some((w) => w.code === "malformed-content")).toBe(true);
   });
 });
 
-describe("html extractor: invalid UTF-8 warning", () => {
-  it("warns on invalid UTF-8 byte sequences", async () => {
+describe("html extractor: invalid UTF-8 handling (Defect 12)", () => {
+  it("rejects invalid UTF-8 byte sequences by default", async () => {
     const invalid = new Uint8Array([
       ...new TextEncoder().encode("<p>hi "),
       0xff,
       0xfe,
       ...new TextEncoder().encode("</p>"),
     ]);
-    const doc = await htmlExtractor.extract(bufInput(invalid, "bad.html"), {});
+    await expect(htmlExtractor.extract(bufInput(invalid, "bad.html"), {})).rejects.toThrow(
+      ExtractionError,
+    );
+  });
+
+  it("warns (rather than rejects) on invalid UTF-8 when tolerantTextDecoding is set", async () => {
+    const invalid = new Uint8Array([
+      ...new TextEncoder().encode("<p>hi "),
+      0xff,
+      0xfe,
+      ...new TextEncoder().encode("</p>"),
+    ]);
+    const doc = await htmlExtractor.extract(bufInput(invalid, "bad.html"), {
+      tolerantTextDecoding: true,
+      maxInvalidSequenceRatio: 1,
+    });
     expect(doc.warnings.some((w) => w.code === "malformed-content")).toBe(true);
   });
 

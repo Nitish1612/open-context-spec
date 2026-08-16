@@ -7,7 +7,7 @@ import type {
   ExtractionOptions,
   ResolvedInput,
 } from "../types.js";
-import { buildExtractedDocument, decodeUtf8Strict, warn } from "./util.js";
+import { buildExtractedDocument, decodeTextSafely, warn } from "./util.js";
 
 export const textExtractor: ContentExtractor = {
   id: "text",
@@ -23,7 +23,10 @@ export const textExtractor: ContentExtractor = {
     const limits = resolveLimits(options.limits);
     if (!input.data) throw new ExtractionError("Text extractor requires resolved byte content.");
 
-    const { text, hadInvalidSequences } = decodeUtf8Strict(input.data);
+    const { text, hadInvalidSequences } = decodeTextSafely(input.data, {
+      tolerant: options.tolerantTextDecoding,
+      maxInvalidSequenceRatio: options.maxInvalidSequenceRatio,
+    });
     assertWithinCharLimit(text.length, limits.maxExtractedChars, "Extracted text");
 
     const warnings = [];

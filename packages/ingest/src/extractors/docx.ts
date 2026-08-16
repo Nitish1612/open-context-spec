@@ -1,9 +1,10 @@
 import * as cheerio from "cheerio";
-import JSZip from "jszip";
+import type JSZip from "jszip";
 import mammoth from "mammoth";
 import { XMLParser } from "fast-xml-parser";
 import { ExtractionError } from "../errors.js";
-import { assertSafeArchive, assertWithinCharLimit, resolveLimits } from "../security/limits.js";
+import { assertWithinCharLimit, resolveLimits } from "../security/limits.js";
+import { inspectOfficeArchive } from "../security/officeArchive.js";
 import type {
   ContentExtractor,
   ExtractedDocument,
@@ -13,18 +14,8 @@ import type {
 } from "../types.js";
 import { buildExtractedDocument, warn } from "./util.js";
 
-async function readCoreProperties(data: Uint8Array): Promise<Record<string, unknown>> {
+async function readCoreProperties(zip: JSZip): Promise<Record<string, unknown>> {
   try {
-    const zip = await JSZip.loadAsync(data);
-    const entries = Object.values(zip.files).map((f) => ({
-      name: f.name,
-      compressedSize:
-        (f as unknown as { _data?: { compressedSize?: number } })._data?.compressedSize ?? 0,
-      uncompressedSize:
-        (f as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize ?? 0,
-    }));
-    // Archive safety validated by caller before this is invoked; re-reading
-    // here would double-count, so this function focuses purely on metadata.
     const coreFile = zip.file("docProps/core.xml");
     if (!coreFile) return {};
     const xml = await coreFile.async("string");
@@ -33,7 +24,6 @@ async function readCoreProperties(data: Uint8Array): Promise<Record<string, unkn
     const coreProps = (parsed["cp:coreProperties"] ?? parsed["coreProperties"]) as
       Record<string, unknown> | undefined;
     if (!coreProps) return {};
-    void entries;
     return {
       title: coreProps["dc:title"],
       creator: coreProps["dc:creator"],
@@ -64,25 +54,10 @@ export const docxExtractor: ContentExtractor = {
     const limits = resolveLimits(options.limits);
     if (!input.data) throw new ExtractionError("DOCX extractor requires resolved byte content.");
 
-    const zip = await JSZip.loadAsync(input.data).catch((error: unknown) => {
-      throw new ExtractionError(
-        `Failed to open DOCX as a zip archive (malformed container): ${error instanceof Error ? error.message : String(error)}`,
-        error,
-      );
-    });
-    const entries = Object.values(zip.files)
-      .filter((f) => !f.dir)
-      .map((f) => {
-        const meta = (
-          f as unknown as { _data?: { compressedSize?: number; uncompressedSize?: number } }
-        )._data;
-        return {
-          name: f.name,
-          compressedSize: meta?.compressedSize ?? 0,
-          uncompressedSize: meta?.uncompressedSize ?? 0,
-        };
-      });
-    assertSafeArchive(entries, limits);
+    // Preflight the archive's central directory (entry count, total
+    // uncompressed size, per-entry compression ratio, entry-name safety,
+    // required OOXML structure) before decompressing any entry content.
+    const { zip } = await inspectOfficeArchive(input.data, limits);
 
     // mammoth reads only document.xml/styles/numbering — it never executes
     // macros (VBA project parts) or opens embedded OLE objects; it simply
@@ -165,7 +140,7 @@ export const docxExtractor: ContentExtractor = {
       });
     flush();
 
-    const coreProps = await readCoreProperties(input.data);
+    const coreProps = await readCoreProperties(zip);
     const title =
       typeof coreProps.title === "string" && coreProps.title.trim() ? coreProps.title : undefined;
 

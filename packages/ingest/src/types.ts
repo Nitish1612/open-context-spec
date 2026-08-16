@@ -4,7 +4,13 @@
  * prompts, and it never treats extracted text as an authoritative
  * instruction (see mapper.ts and specification/v1/security.md).
  */
-import type { ContextEnvelope, Resource, SensitivityLevel, TrustLevel } from "@ulcs/core";
+import type {
+  ContextEnvelope,
+  InstructionAuthority,
+  Resource,
+  SensitivityLevel,
+  TrustLevel,
+} from "@ulcs/core";
 
 export type InputSource =
   | { kind: "file"; path: string }
@@ -77,8 +83,18 @@ export interface ExtractionOptions {
   /** Enable OCR for scanned/image-only content, if a provider is registered. */
   ocr?: boolean;
   ocrProvider?: OcrProvider;
+  /** Language hint passed through to `OcrProvider.recognize`. */
+  ocrLanguage?: string;
   /** CSV/TSV delimiter override. */
   delimiter?: string;
+  /**
+   * Allow a small, bounded amount of malformed UTF-8 through as
+   * replacement characters instead of rejecting the input as
+   * not-actually-text. Off by default — see `decodeTextSafely`.
+   */
+  tolerantTextDecoding?: boolean;
+  /** Maximum fraction (0-1) of invalid-sequence bytes allowed when `tolerantTextDecoding` is set. Default 0.05. */
+  maxInvalidSequenceRatio?: number;
   /** Resource limits applied during extraction. */
   limits?: Partial<ResourceLimits>;
   /** Abort signal for cooperative cancellation / timeouts. */
@@ -142,6 +158,16 @@ export interface ChunkingOptions {
   tokenizer?: (text: string) => number;
 }
 
+/** A single structural locator, used both as a `Chunk`'s primary location and as an entry in `sourceLocators` when a chunk spans more than one. */
+export interface ChunkLocator {
+  page?: number;
+  slide?: number;
+  sheet?: string;
+  rowStart?: number;
+  rowEnd?: number;
+  section?: string;
+}
+
 export interface Chunk {
   id: string;
   content: string;
@@ -157,6 +183,16 @@ export interface Chunk {
   section?: string;
   tokenEstimate?: number;
   metadata?: Record<string, unknown>;
+  /**
+   * Every structural locator folded into this chunk, in source order.
+   * Populated only when `preserveStructuralBoundary: false` allowed
+   * adjacent structural units (pages/slides/sheets/sections) to be packed
+   * together — a chunk built under the default (`true`) always maps 1:1
+   * onto its own `page`/`slide`/etc. fields and leaves this undefined, so
+   * existing consumers reading only the top-level locator fields are
+   * unaffected.
+   */
+  sourceLocators?: ChunkLocator[];
 }
 
 export interface MappingOptions {
@@ -169,6 +205,14 @@ export interface MappingOptions {
   includeDefaultInstruction?: boolean;
   maxContextTokens?: number;
   reservedOutputTokens?: number;
+  /**
+   * Authority for the default data-usage instruction. Defaults to `"user"`
+   * — the lowest authority that still lets a host prompt reasonably defer
+   * to it. Selecting `"application"`, `"developer"`, or `"system"` is an
+   * explicit, host-application-only escalation: the ingestion CLI never
+   * sets this, and it must never be derived from ingested content.
+   */
+  defaultInstructionAuthority?: InstructionAuthority;
 }
 
 export interface IngestOptions extends ExtractionOptions, Partial<ChunkingOptions> {
@@ -179,6 +223,8 @@ export interface IngestOptions extends ExtractionOptions, Partial<ChunkingOption
   exclude?: string[];
   /** Host-application opt-in to allow private-network URL targets. Disabled by default. */
   allowPrivateNetworkUrls?: boolean;
+  /** Host-application opt-in to ingest a non-2xx HTTP response body instead of rejecting it. Disabled by default. */
+  acceptErrorResponses?: boolean;
 }
 
 export interface DirectoryFileResult {

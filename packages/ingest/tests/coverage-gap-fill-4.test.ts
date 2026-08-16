@@ -7,6 +7,7 @@ import {
   xlsxExtractor,
   mapDocumentsToContext,
   chunkDocument,
+  ExtractionError,
 } from "../src/index.js";
 import type { ResolvedInput, ExtractedDocument } from "../src/index.js";
 import { toPortablePath, SymlinkLoopGuard } from "../src/security/paths.js";
@@ -25,15 +26,27 @@ function textInput(content: string, filename: string): ResolvedInput {
   return { source: { kind: "text", content }, data, filename };
 }
 
-describe("jsonl extractor: invalid UTF-8 warning", () => {
-  it("warns on invalid UTF-8 byte sequences", async () => {
-    const invalid = new Uint8Array([
+describe("jsonl extractor: invalid UTF-8 handling (Defect 12)", () => {
+  function invalidBytes(): Uint8Array {
+    return new Uint8Array([
       ...new TextEncoder().encode('{"a":1}\n{"b":"'),
       0xff,
       0xfe,
       ...new TextEncoder().encode('"}\n'),
     ]);
-    const doc = await jsonlExtractor.extract(bufInput(invalid, "bad.jsonl"), {});
+  }
+
+  it("rejects invalid UTF-8 byte sequences by default", async () => {
+    await expect(jsonlExtractor.extract(bufInput(invalidBytes(), "bad.jsonl"), {})).rejects.toThrow(
+      ExtractionError,
+    );
+  });
+
+  it("warns (rather than rejects) on invalid UTF-8 when tolerantTextDecoding is set", async () => {
+    const doc = await jsonlExtractor.extract(bufInput(invalidBytes(), "bad.jsonl"), {
+      tolerantTextDecoding: true,
+      maxInvalidSequenceRatio: 1,
+    });
     expect(
       doc.warnings.some((w) => w.code === "malformed-content" && w.message.includes("UTF-8")),
     ).toBe(true);

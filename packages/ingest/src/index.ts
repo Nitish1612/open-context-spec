@@ -66,7 +66,12 @@ export {
   assertWithinCharLimit,
   assertWithinCount,
   withTimeout,
+  combineSignals,
 } from "./security/limits.js";
+export { inspectOfficeArchive } from "./security/officeArchive.js";
+export type { OfficeArchiveEntry, OfficeArchiveInspection } from "./security/officeArchive.js";
+
+export type { ContextEnricher, EnrichmentOptions } from "./enrichment.js";
 
 /**
  * `createIngestionPipeline` returns a small, deps-scoped façade over the
